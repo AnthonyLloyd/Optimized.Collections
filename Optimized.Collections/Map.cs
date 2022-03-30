@@ -1,60 +1,29 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections;
+using System.Runtime.CompilerServices;
 
 namespace Optimized.Collections;
-
-/// <summary>
-/// 
-/// </summary>
-public static class MapSlim
-{
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <typeparam name="R"></typeparam>
-    /// <param name="func"></param>
-    /// <returns></returns>
-    public static Func<T, R> Memoize<T, R>(Func<T, R> func) where T : IEquatable<T>
-    {
-        var d = new MapSlim<T, R>();
-        return t => d.GetOrAdd(t, func);
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <typeparam name="R"></typeparam>
-    /// <param name="func"></param>
-    /// <returns></returns>
-    public static Func<T, R> MemoizeMultiThreaded<T, R>(Func<T, R> func) where T : IEquatable<T>
-    {
-        var d = new MapSlim<T, R>();
-        return t => d.GetOrLockedAdd(t, func);
-    }
-}
 
 /// <summary>
 /// Faster lookup. Lower memory. Lock free for read while Adding.
 /// </summary>
 /// <typeparam name="K"></typeparam>
 /// <typeparam name="V"></typeparam>
-public sealed class MapSlim<K, V> where K : IEquatable<K>
+public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K>
 {
     struct Entry { internal int Bucket; internal int Next; internal K Key; internal V Value; }
-    static class Holder { internal static Entry[] Initial = new Entry[1]; }
+    static class Holder { internal readonly static Entry[] Initial = new Entry[1]; }
     int count;
     Entry[] entries;
     /// <summary>
     /// 
     /// </summary>
-    public MapSlim() => entries = Holder.Initial;
+    public Map() => entries = Holder.Initial;
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="capacity"></param>
-    public MapSlim(int capacity)
+    public Map(int capacity)
     {
         if (capacity < 2) capacity = 2;
         entries = new Entry[PowerOf2(capacity)];
@@ -64,7 +33,7 @@ public sealed class MapSlim<K, V> where K : IEquatable<K>
     /// 
     /// </summary>
     /// <param name="items"></param>
-    public MapSlim(IEnumerable<(K, V)> items)
+    public Map(IEnumerable<(K, V)> items)
     {
         entries = new Entry[2];
         foreach (var (k, v) in items) this[k] = v;
@@ -74,7 +43,7 @@ public sealed class MapSlim<K, V> where K : IEquatable<K>
     /// 
     /// </summary>
     /// <param name="dictionary"></param>
-    public MapSlim(IDictionary<K, V> dictionary)
+    public Map(IDictionary<K, V> dictionary)
     {
         var count = dictionary.Count;
         entries = new Entry[count <= 2 ? 2 : PowerOf2(count)];
@@ -160,7 +129,7 @@ public sealed class MapSlim<K, V> where K : IEquatable<K>
     /// <param name="key"></param>
     /// <param name="value"></param>
     /// <returns></returns>
-    public bool TryGetValue(K key, out V? value)
+    public bool TryGetValue(K key, out V value)
     {
         var ent = entries;
         var hashCode = key.GetHashCode();
@@ -173,7 +142,9 @@ public sealed class MapSlim<K, V> where K : IEquatable<K>
         }
         else
         {
+#pragma warning disable CS8601 // Possible null reference assignment.
             value = default;
+#pragma warning restore CS8601 // Possible null reference assignment.
             return false;
         }
     }
@@ -284,4 +255,83 @@ public sealed class MapSlim<K, V> where K : IEquatable<K>
     /// <param name="i"></param>
     /// <returns></returns>
     public V Value(int i) => entries[i].Value;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public bool ContainsKey(K key) => IndexOf(key) != -1;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
+    {
+        for (int i = 0; i < count; i++)
+            yield return new(entries[i].Key, entries[i].Value);
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        for (int i = 0; i < count; i++)
+            yield return new KeyValuePair<K, V>(entries[i].Key, entries[i].Value);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public IEnumerable<K> Keys
+    {
+        get
+        {
+            for (int i = 0; i < count; i++)
+                yield return entries[i].Key;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public IEnumerable<V> Values
+    {
+        get
+        {
+            for (int i = 0; i < count; i++)
+                yield return entries[i].Value;
+        }
+    }
+}
+
+/// <summary>
+/// 
+/// </summary>
+public static class Map
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="R"></typeparam>
+    /// <param name="func"></param>
+    /// <returns></returns>
+    public static Func<T, R> Memoize<T, R>(Func<T, R> func) where T : IEquatable<T>
+    {
+        var d = new Map<T, R>();
+        return t => d.GetOrAdd(t, func);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="R"></typeparam>
+    /// <param name="func"></param>
+    /// <returns></returns>
+    public static Func<T, R> MemoizeMultiThreaded<T, R>(Func<T, R> func) where T : IEquatable<T>
+    {
+        var d = new Map<T, R>();
+        return t => d.GetOrLockedAdd(t, func);
+    }
 }
