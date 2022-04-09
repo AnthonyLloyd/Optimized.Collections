@@ -12,12 +12,12 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
 {
     struct Entry { internal int Bucket; internal int Next; internal K Key; internal V Value; }
     static class Holder { internal readonly static Entry[] Initial = new Entry[1]; }
-    int count;
-    Entry[] entries;
+    int _count;
+    Entry[] _entries;
     /// <summary>
     /// 
     /// </summary>
-    public Map() => entries = Holder.Initial;
+    public Map() => _entries = Holder.Initial;
 
     /// <summary>
     /// 
@@ -26,7 +26,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     public Map(int capacity)
     {
         if (capacity < 2) capacity = 2;
-        entries = new Entry[PowerOf2(capacity)];
+        _entries = new Entry[PowerOf2(capacity)];
     }
 
     /// <summary>
@@ -35,7 +35,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     /// <param name="items"></param>
     public Map(IEnumerable<(K, V)> items)
     {
-        entries = new Entry[2];
+        _entries = new Entry[2];
         foreach (var (k, v) in items) this[k] = v;
     }
 
@@ -46,14 +46,14 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     public Map(IDictionary<K, V> dictionary)
     {
         var count = dictionary.Count;
-        entries = new Entry[count <= 2 ? 2 : PowerOf2(count)];
+        _entries = new Entry[count <= 2 ? 2 : PowerOf2(count)];
         foreach (var i in dictionary) this[i.Key] = i.Value;
     }
 
     /// <summary>
     /// 
     /// </summary>
-    public int Count => count;
+    public int Count => _count;
 
     static int PowerOf2(int capacity)
     {
@@ -70,31 +70,31 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     [MethodImpl(MethodImplOptions.NoInlining)]
     Entry[] Resize()
     {
-        var oldEntries = entries;
-        if (oldEntries.Length == 1) return entries = new Entry[2];
-        var newEntries = new Entry[oldEntries.Length * 2];
-        for (int i = 0; i < oldEntries.Length;)
+        var old_items = _entries;
+        if (old_items.Length == 1) return _entries = new Entry[2];
+        var new_items = new Entry[old_items.Length * 2];
+        for (int i = 0; i < old_items.Length;)
         {
-            var bucketIndex = oldEntries[i].Key.GetHashCode() & (newEntries.Length - 1);
-            newEntries[i].Next = newEntries[bucketIndex].Bucket - 1;
-            newEntries[i].Key = oldEntries[i].Key;
-            newEntries[i].Value = oldEntries[i].Value;
-            newEntries[bucketIndex].Bucket = ++i;
+            var bucketIndex = old_items[i].Key.GetHashCode() & (new_items.Length - 1);
+            new_items[i].Next = new_items[bucketIndex].Bucket - 1;
+            new_items[i].Key = old_items[i].Key;
+            new_items[i].Value = old_items[i].Value;
+            new_items[bucketIndex].Bucket = ++i;
         }
-        return entries = newEntries;
+        return _entries = new_items;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     void AddItem(K key, V value, int hashCode)
     {
-        var i = count;
-        var ent = entries;
+        var i = _count;
+        var ent = _entries;
         if (ent.Length == i || ent.Length == 1) ent = Resize();
         var bucketIndex = hashCode & (ent.Length - 1);
         ent[i].Next = ent[bucketIndex].Bucket - 1;
         ent[i].Key = key;
         ent[i].Value = value;
-        ent[bucketIndex].Bucket = ++count;
+        ent[bucketIndex].Bucket = ++_count;
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     {
         get
         {
-            var ent = entries;
+            var ent = _entries;
             var hashCode = key.GetHashCode();
             var i = ent[hashCode & (ent.Length - 1)].Bucket - 1;
             while (i >= 0 && !key.Equals(ent[i].Key)) i = ent[i].Next;
@@ -114,7 +114,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
         }
         set
         {
-            var ent = entries;
+            var ent = _entries;
             var hashCode = key.GetHashCode();
             var i = ent[hashCode & (ent.Length - 1)].Bucket - 1;
             while (i >= 0 && !key.Equals(ent[i].Key)) i = ent[i].Next;
@@ -131,7 +131,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     /// <returns></returns>
     public bool TryGetValue(K key, out V value)
     {
-        var ent = entries;
+        var ent = _entries;
         var hashCode = key.GetHashCode();
         var i = ent[hashCode & (ent.Length - 1)].Bucket - 1;
         while (i >= 0 && !key.Equals(ent[i].Key)) i = ent[i].Next;
@@ -157,7 +157,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     /// <returns></returns>
     public V GetOrAdd(K key, Func<K, V> valueFactory)
     {
-        var ent = entries;
+        var ent = _entries;
         var hashCode = key.GetHashCode();
         var i = ent[hashCode & (ent.Length - 1)].Bucket - 1;
         while (i >= 0 && !key.Equals(ent[i].Key)) i = ent[i].Next;
@@ -178,7 +178,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     /// <returns></returns>
     public V GetOrLockedAdd(K key, Func<K, V> valueFactory)
     {
-        var ent = entries;
+        var ent = _entries;
         var hashCode = key.GetHashCode();
         var i = ent[hashCode & (ent.Length - 1)].Bucket - 1;
         while (i >= 0 && !key.Equals(ent[i].Key)) i = ent[i].Next;
@@ -187,7 +187,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
         {
             lock (this)
             {
-                ent = entries;
+                ent = _entries;
                 i = ent[hashCode & (ent.Length - 1)].Bucket - 1;
                 while (i >= 0 && !key.Equals(ent[i].Key)) i = ent[i].Next;
                 if (i >= 0) return ent[i].Value;
@@ -208,14 +208,14 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     /// <returns></returns>
     public ref V GetValueOrNullRef(K key)
     {
-        var ent = entries;
+        var ent = _entries;
         var hashCode = key.GetHashCode();
         var i = ent[hashCode & (ent.Length - 1)].Bucket - 1;
         while (i >= 0 && !key.Equals(ent[i].Key)) i = ent[i].Next;
         if (i >= 0) return ref ent[i].Value;
         else
         {
-            i = count;
+            i = _count;
             if (ent.Length == i || ent.Length == 1) ent = Resize();
             var bucketIndex = hashCode & (ent.Length - 1);
             ent[i].Next = ent[bucketIndex].Bucket - 1;
@@ -223,7 +223,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
 #pragma warning disable CS8601 // Possible null reference assignment.
             ent[i].Value = default;
 #pragma warning restore CS8601 // Possible null reference assignment.
-            ent[bucketIndex].Bucket = ++count;
+            ent[bucketIndex].Bucket = ++_count;
             return ref ent[i].Value;
         }
     }
@@ -235,7 +235,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     /// <returns></returns>
     public int IndexOf(K key)
     {
-        var ent = entries;
+        var ent = _entries;
         var hashCode = key.GetHashCode();
         var i = ent[hashCode & (ent.Length - 1)].Bucket - 1;
         while (i >= 0 && !key.Equals(ent[i].Key)) i = ent[i].Next;
@@ -247,14 +247,14 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     /// </summary>
     /// <param name="i"></param>
     /// <returns></returns>
-    public K Key(int i) => entries[i].Key;
+    public K Key(int i) => _entries[i].Key;
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="i"></param>
     /// <returns></returns>
-    public V Value(int i) => entries[i].Value;
+    public V Value(int i) => _entries[i].Value;
 
     /// <summary>
     /// 
@@ -269,14 +269,14 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     /// <returns></returns>
     IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
     {
-        for (int i = 0; i < count; i++)
-            yield return new(entries[i].Key, entries[i].Value);
+        for (int i = 0; i < _count; i++)
+            yield return new(_entries[i].Key, _entries[i].Value);
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        for (int i = 0; i < count; i++)
-            yield return new KeyValuePair<K, V>(entries[i].Key, entries[i].Value);
+        for (int i = 0; i < _count; i++)
+            yield return new KeyValuePair<K, V>(_entries[i].Key, _entries[i].Value);
     }
 
     /// <summary>
@@ -286,8 +286,8 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     {
         get
         {
-            for (int i = 0; i < count; i++)
-                yield return entries[i].Key;
+            for (int i = 0; i < _count; i++)
+                yield return _entries[i].Key;
         }
     }
 
@@ -298,8 +298,8 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     {
         get
         {
-            for (int i = 0; i < count; i++)
-                yield return entries[i].Value;
+            for (int i = 0; i < _count; i++)
+                yield return _entries[i].Value;
         }
     }
 }

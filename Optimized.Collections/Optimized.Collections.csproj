@@ -8,6 +8,7 @@ Optimized.Collections aims to provide drop in replacements for System.Collection
         <Copyright>Copyright 2022</Copyright>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageProjectUrl>http://github.com/AnthonyLloyd/Optimized.Collections</PackageProjectUrl>
+        <PackageIcon>Optimized.Collections.png</PackageIcon>
         <PackageTags>collections;performance;speed;memory;low-locking</PackageTags>
         <Version>0.1.0-setup</Version>
         <PackageReleaseNotes>
@@ -27,6 +28,7 @@ Setup release.
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
     <ItemGroup>
+        <None Include="../Optimized.Collections.png" Pack="true" PackagePath="" Visible="False" />
         <None Include="../README.md" Pack="true" PackagePath="" Visible="False" />
     </ItemGroup>
 </Project>
