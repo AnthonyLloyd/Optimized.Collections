@@ -10,9 +10,9 @@ Optimized.Collections aims to provide drop in replacements for System.Collection
         <PackageProjectUrl>http://github.com/AnthonyLloyd/Optimized.Collections</PackageProjectUrl>
         <PackageIcon>Optimized.Collections.png</PackageIcon>
         <PackageTags>collections;performance;speed;memory;low-locking</PackageTags>
-        <Version>0.1.0-preview</Version>
+        <Version>0.2.0-preview</Version>
         <PackageReleaseNotes>
-Setup release.
+Preview release - Vec, VecSync close but Map and Set need work.
         </PackageReleaseNotes>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>10.0</LangVersion>
