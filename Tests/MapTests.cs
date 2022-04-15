@@ -24,7 +24,7 @@ public class MapTests
     }
 
     [Fact]
-    public void Add_Performance()
+    public void Set_Performance()
     {
         Gen.Int.Select(Gen.Byte).Array
         .Faster(
