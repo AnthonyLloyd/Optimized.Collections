@@ -47,18 +47,17 @@ public class Vec<T> : IReadOnlyList<T>
         get => _items.Length;
         set
         {
-            if (value >= _count && value != _items.Length)
+            if (value == _items.Length) return;
+            if (value < _count) ThrowHelper.CannotReduceCapacityBelowCount();
+            if (value == 0)
             {
-                if (value == 0)
-                {
-                    _items = s_emptyArray;
-                }
-                else
-                {
-                    var newItems = new T[value];
-                    Array.Copy(_items, newItems, _count);
-                    _items = newItems;
-                }
+                _items = s_emptyArray;
+            }
+            else
+            {
+                var newItems = new T[value];
+                Array.Copy(_items, newItems, _count);
+                _items = newItems;
             }
         }
     }
@@ -69,7 +68,11 @@ public class Vec<T> : IReadOnlyList<T>
     public T this[int index]
     {
         get => _items[index];
-        set => _items[index] = value;
+        set
+        {
+            if ((uint)index >= (uint)_count) ThrowHelper.ThrowArgumentOutOfRange();
+            _items[index] = value;
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

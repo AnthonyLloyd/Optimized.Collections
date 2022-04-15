@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
-using Optimized.Collections;
+﻿using Optimized.Collections;
 using CsCheck;
 using Xunit;
 

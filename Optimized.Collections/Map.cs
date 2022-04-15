@@ -303,35 +303,3 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
         }
     }
 }
-
-/// <summary>
-/// 
-/// </summary>
-public static class Map
-{
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <typeparam name="R"></typeparam>
-    /// <param name="func"></param>
-    /// <returns></returns>
-    public static Func<T, R> Memoize<T, R>(Func<T, R> func) where T : IEquatable<T>
-    {
-        var d = new Map<T, R>();
-        return t => d.GetOrAdd(t, func);
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <typeparam name="R"></typeparam>
-    /// <param name="func"></param>
-    /// <returns></returns>
-    public static Func<T, R> MemoizeMultiThreaded<T, R>(Func<T, R> func) where T : IEquatable<T>
-    {
-        var d = new Map<T, R>();
-        return t => d.GetOrLockedAdd(t, func);
-    }
-}

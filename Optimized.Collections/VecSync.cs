@@ -1,13 +1,16 @@
 ﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
 namespace Optimized.Collections;
 
-/// <summary>Represents a strongly typed grow only list of objects that can be accessed by index.</summary>
+/// <summary>Represents a syncronised version of <see cref="Vec{T}"/>.</summary>
 /// <remarks>
-/// - Lock free for reads during modification for reference types (and value types that set atomically).<br/>
+/// - Lock free for reads for reference types (and value types that set atomically).<br/>
+/// - Read lock during set allowing multiple in parallel.<br/>
+/// - Write lock during Add.<br/>
 /// - More control of memory use and excess capacity.<br/>
-/// - Slightly better performance than <see cref="List{T}"/> in general.<br/>
+/// - Much better performance than <see cref="ConcurrentBag{T}"/> in general.<br/>
 /// </remarks>
 /// <typeparam name="T">The type of elements in the list.</typeparam>
 public class VecSync<T> : IReadOnlyList<T>
@@ -48,19 +51,22 @@ public class VecSync<T> : IReadOnlyList<T>
         get => _items.Length;
         set
         {
+            if (value == _items.Length) return;
             _lock.EnterWriteLock();
-            if (value >= _count && value != _items.Length)
+            if (value < _count)
             {
-                if (value == 0)
-                {
-                    _items = s_emptyArray;
-                }
-                else
-                {
-                    var newItems = new T[value];
-                    Array.Copy(_items, newItems, _count);
-                    _items = newItems;
-                }
+                _lock.ExitWriteLock();
+                ThrowHelper.CannotReduceCapacityBelowCount();
+            }
+            if (value == 0)
+            {
+                _items = s_emptyArray;
+            }
+            else
+            {
+                var newItems = new T[value];
+                Array.Copy(_items, newItems, _count);
+                _items = newItems;
             }
             _lock.ExitWriteLock();
         }
@@ -75,6 +81,11 @@ public class VecSync<T> : IReadOnlyList<T>
         set
         {
             _lock.EnterReadLock();
+            if ((uint)index >= (uint)_count)
+            {
+                _lock.ExitReadLock();
+                ThrowHelper.CannotReduceCapacityBelowCount();
+            }
             _items[index] = value;
             _lock.ExitReadLock();
         }

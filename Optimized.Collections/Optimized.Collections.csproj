@@ -15,7 +15,7 @@ Optimized.Collections aims to provide drop in replacements for System.Collection
 Preview release - Vec, VecSync close but Map and Set need work.
         </PackageReleaseNotes>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <LangVersion>10.0</LangVersion>
+        <LangVersion>preview</LangVersion>
         <WarningLevel>5</WarningLevel>
         <Features>strict</Features>
         <ImplicitUsings>enable</ImplicitUsings>

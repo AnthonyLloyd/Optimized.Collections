@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
-using Optimized.Collections;
+﻿using Optimized.Collections;
 using CsCheck;
 using Xunit;
 
@@ -73,37 +70,6 @@ public class MapTests
             (items, _, dict) =>
             {
                 foreach (var (k, _) in items) dict.ContainsKey(k);
-            },
-            repeat: 100, raiseexception: false, sigma: 100
-        ).Output(writeLine);
-    }
-
-    [Fact]
-    public void Map_Performance_Memoize()
-    {
-        static Func<K, V> Memoize<K, V>(Func<K, V> f) where K : notnull
-        {
-            var d = new Dictionary<K, V>();
-            return i =>
-            {
-                if (!d.TryGetValue(i, out var r))
-                    d.Add(i, r = f(i));
-                return r;
-            };
-        }
-
-        var f = (int i) => i;
-
-        Gen.Int.Array
-        .Select(a => (a, Map.Memoize(f), Memoize(f)))
-        .Faster(
-            (items, m, _) =>
-            {
-                foreach (var i in items) m(i);
-            },
-            (items, _, d) =>
-            {
-                foreach (var i in items) d(i);
             },
             repeat: 100, raiseexception: false, sigma: 100
         ).Output(writeLine);
