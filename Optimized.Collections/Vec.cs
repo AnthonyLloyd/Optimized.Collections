@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Optimized.Collections;
 
-/// <summary>Represents a strongly typed grow only list of objects that can be accessed by index.</summary>
+/// <summary>Represents a strongly typed grow only vector of objects that can be accessed by index.</summary>
 /// <remarks>
 /// - Lock free for reads during modification for reference types (and value types that set atomically).<br/>
 /// - More control of memory use and excess capacity.<br/>
@@ -12,7 +12,7 @@ namespace Optimized.Collections;
 /// <typeparam name="T">The type of elements in the list.</typeparam>
 public sealed class Vec<T> : IReadOnlyList<T>
 {
-    static readonly T[] s_emptyArray = new T[0];
+    static readonly T[] s_emptyArray = Array.Empty<T>();
     int _count;
     T[] _items;
 
@@ -48,7 +48,7 @@ public sealed class Vec<T> : IReadOnlyList<T>
         set
         {
             if (value == _items.Length) return;
-            if (value < _count) ThrowHelper.CannotReduceCapacityBelowCount();
+            if (value < _count) Helper.ThrowCannotReduceCapacityBelowCount();
             if (value == 0)
             {
                 _items = s_emptyArray;
@@ -70,7 +70,7 @@ public sealed class Vec<T> : IReadOnlyList<T>
         get => _items[index];
         set
         {
-            if ((uint)index >= (uint)_count) ThrowHelper.ThrowArgumentOutOfRange();
+            if ((uint)index >= (uint)_count) Helper.ThrowArgumentOutOfRange();
             _items[index] = value;
         }
     }

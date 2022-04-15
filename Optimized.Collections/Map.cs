@@ -26,7 +26,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     public Map(int capacity)
     {
         if (capacity < 2) capacity = 2;
-        _entries = new Entry[PowerOf2(capacity)];
+        _entries = new Entry[Helper.PowerOf2(capacity)];
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     public Map(IDictionary<K, V> dictionary)
     {
         var count = dictionary.Count;
-        _entries = new Entry[count <= 2 ? 2 : PowerOf2(count)];
+        _entries = new Entry[count <= 2 ? 2 : Helper.PowerOf2(count)];
         foreach (var i in dictionary) this[i.Key] = i.Value;
     }
 
@@ -54,14 +54,6 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V> where K : IEquatable<K
     /// 
     /// </summary>
     public int Count => _count;
-
-    static int PowerOf2(int capacity)
-    {
-        if ((capacity & (capacity - 1)) == 0) return capacity;
-        int i = 2;
-        while (i < capacity) i <<= 1;
-        return i;
-    }
 
     /// <summary>
     /// 

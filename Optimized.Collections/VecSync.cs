@@ -56,7 +56,7 @@ public sealed class VecSync<T> : IReadOnlyList<T>
             if (value < _count)
             {
                 _lock.ExitWriteLock();
-                ThrowHelper.CannotReduceCapacityBelowCount();
+                Helper.ThrowCannotReduceCapacityBelowCount();
             }
             if (value == 0)
             {
@@ -84,7 +84,7 @@ public sealed class VecSync<T> : IReadOnlyList<T>
             if ((uint)index >= (uint)_count)
             {
                 _lock.ExitReadLock();
-                ThrowHelper.CannotReduceCapacityBelowCount();
+                Helper.ThrowCannotReduceCapacityBelowCount();
             }
             _items[index] = value;
             _lock.ExitReadLock();

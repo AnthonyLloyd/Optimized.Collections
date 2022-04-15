@@ -14,8 +14,8 @@ public static class Memoize
     /// <returns></returns>
     public static Func<T, R> SingleThreaded<T, R>(Func<T, R> func) where T : IEquatable<T>
     {
-        var d = new Map<T, R>();
-        return t => d.GetOrAdd(t, func);
+        var map = new Map<T, R>();
+        return t => map.GetOrAdd(t, func);
     }
 
     /// <summary>
@@ -27,8 +27,8 @@ public static class Memoize
     /// <returns></returns>
     public static Func<T, R> MultiThreaded<T, R>(Func<T, R> func) where T : IEquatable<T>
     {
-        var d = new Map<T, R>();
-        return t => d.GetOrLockedAdd(t, func);
+        var map = new Map<T, R>();
+        return t => map.GetOrLockedAdd(t, func);
     }
 
     /// <summary>
@@ -59,7 +59,7 @@ public static class Memoize
                     missingIndex.Add(i);
                 }
             }
-            if (missing.Count > 0)
+            if (missing.Count != 0)
             {
                 var missingResults = await func(missing);
                 for (int i = 0; i < missingResults.Count; i++)

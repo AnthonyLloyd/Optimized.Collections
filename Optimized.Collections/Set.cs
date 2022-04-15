@@ -3,20 +3,24 @@ using System.Runtime.CompilerServices;
 
 namespace Optimized.Collections;
 
-/// <summary>
-/// 
-/// </summary>
-/// <typeparam name="T"></typeparam>
-public sealed class Set<T> : IReadOnlyCollection<T>, IReadOnlyList<T> where T : IEquatable<T>
+/// <summary>Represents a strongly typed grow only set of values that can be accessed by index.</summary>
+/// <remarks>
+/// - Lock free for reads during modification for reference types (and value types that set atomically).<br/>
+/// - Better performance than <see cref="HashSet{T}"/> in general.<br/>
+/// </remarks>
+/// <typeparam name="T">The type of elements in the set.</typeparam>
+public sealed class Set<T> :
+#if NET6_0
+    IReadOnlySet<T>,
+#endif
+    IReadOnlyList<T> where T : IEquatable<T>
 {
     struct Entry { internal int Bucket; internal int Next; internal T Item; }
     static class Holder { internal static Entry[] Initial = new Entry[1]; }
     int _count;
     Entry[] _entries;
 
-    /// <summary>
-    /// 
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="Set{T}"/> class that is empty</summary>
     public Set() => _entries = Holder.Initial;
 
     /// <summary>
@@ -25,8 +29,7 @@ public sealed class Set<T> : IReadOnlyCollection<T>, IReadOnlyList<T> where T : 
     /// <param name="capacity"></param>
     public Set(int capacity)
     {
-        if (capacity < 2) capacity = 2;
-        _entries = new Entry[PowerOf2(capacity)];
+        _entries = new Entry[capacity < 2 ? 2 : Helper.PowerOf2(capacity)];
     }
 
     /// <summary>
@@ -39,12 +42,20 @@ public sealed class Set<T> : IReadOnlyCollection<T>, IReadOnlyList<T> where T : 
         foreach (var i in items) Add(i);
     }
 
-    static int PowerOf2(int capacity)
+    /// <summary>
+    /// 
+    /// </summary>
+    public int Count => _count;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public T this[int index]
     {
-        if ((capacity & (capacity - 1)) == 0) return capacity;
-        int i = 2;
-        while (i < capacity) i <<= 1;
-        return i;
+        get => _entries[index].Item;
+        set => _entries[index].Item = value;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -132,16 +143,66 @@ public sealed class Set<T> : IReadOnlyCollection<T>, IReadOnlyList<T> where T : 
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="index"></param>
+    /// <param name="other"></param>
     /// <returns></returns>
-    public T this[int index]
+    /// <exception cref="NotImplementedException"></exception>
+    public bool IsProperSubsetOf(IEnumerable<T> other)
     {
-        get => _entries[index].Item;
-        set => _entries[index].Item = value;
+        throw new NotImplementedException();
     }
 
     /// <summary>
     /// 
     /// </summary>
-    public int Count => _count;
+    /// <param name="other"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public bool IsProperSupersetOf(IEnumerable<T> other)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public bool IsSubsetOf(IEnumerable<T> other)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public bool IsSupersetOf(IEnumerable<T> other)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public bool Overlaps(IEnumerable<T> other)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public bool SetEquals(IEnumerable<T> other)
+    {
+        throw new NotImplementedException();
+    }
 }

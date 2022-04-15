@@ -2,8 +2,16 @@
 
 namespace Optimized.Collections;
 
-internal static class ThrowHelper
+internal static class Helper
 {
+    internal static int PowerOf2(int capacity)
+    {
+        if ((capacity & (capacity - 1)) == 0) return capacity;
+        int i = 2;
+        while (i < capacity) i <<= 1;
+        return i;
+    }
+
     [DebuggerHidden]
     [DebuggerStepThrough]
     internal static void ThrowArgumentOutOfRange()
@@ -13,7 +21,7 @@ internal static class ThrowHelper
 
     [DebuggerHidden]
     [DebuggerStepThrough]
-    internal static void CannotReduceCapacityBelowCount()
+    internal static void ThrowCannotReduceCapacityBelowCount()
     {
         throw new Exception("Cannot reduce capacity below count.");
     }
