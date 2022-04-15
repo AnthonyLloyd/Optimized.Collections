@@ -13,7 +13,7 @@ namespace Optimized.Collections;
 /// - Much better performance than <see cref="ConcurrentBag{T}"/> in general.<br/>
 /// </remarks>
 /// <typeparam name="T">The type of elements in the list.</typeparam>
-public class VecSync<T> : IReadOnlyList<T>
+public sealed class VecSync<T> : IReadOnlyList<T>
 {
     static readonly T[] s_emptyArray = new T[0];
     readonly ReaderWriterLockSlim _lock = new();

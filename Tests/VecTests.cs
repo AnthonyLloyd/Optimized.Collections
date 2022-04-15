@@ -10,7 +10,7 @@ public class VecTests
     public VecTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
 
     [Fact]
-    public void Vec_ModelBased()
+    public void Add_ModelBased()
     {
         Gen.Int.Array.Select(a => (new Vec<int>(a), new List<int>(a)))
         .SampleModelBased(
@@ -22,8 +22,26 @@ public class VecTests
         );
     }
 
+    [Fact(Skip = "Close")]
+    public void Add_Performance()
+    {
+        Gen.Int.Array
+        .Faster(
+            items =>
+            {
+                var vec = new Vec<int>();
+                foreach (var i in items) vec.Add(i);
+            },
+            items =>
+            {
+                var list = new List<int>();
+                foreach (var i in items) list.Add(i);
+            }
+        ).Output(writeLine);
+    }
+
     [Fact]
-    public void Vec_Concurrency()
+    public void Concurrency()
     {
         Gen.Byte.Array.Select(a => new Vec<byte>(a))
         .SampleConcurrent(

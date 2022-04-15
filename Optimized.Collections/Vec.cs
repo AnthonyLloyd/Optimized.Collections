@@ -10,7 +10,7 @@ namespace Optimized.Collections;
 /// - Slightly better performance than <see cref="List{T}"/> in general.<br/>
 /// </remarks>
 /// <typeparam name="T">The type of elements in the list.</typeparam>
-public class Vec<T> : IReadOnlyList<T>
+public sealed class Vec<T> : IReadOnlyList<T>
 {
     static readonly T[] s_emptyArray = new T[0];
     int _count;

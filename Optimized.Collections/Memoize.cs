@@ -3,7 +3,7 @@
 /// <summary>
 /// 
 /// </summary>
-public class Memoize
+public static class Memoize
 {
     /// <summary>
     /// 

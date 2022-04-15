@@ -6,14 +6,14 @@ internal static class ThrowHelper
 {
     [DebuggerHidden]
     [DebuggerStepThrough]
-    public static void ThrowArgumentOutOfRange()
+    internal static void ThrowArgumentOutOfRange()
     {
         throw new ArgumentOutOfRangeException();
     }
 
     [DebuggerHidden]
     [DebuggerStepThrough]
-    public static void CannotReduceCapacityBelowCount()
+    internal static void CannotReduceCapacityBelowCount()
     {
         throw new Exception("Cannot reduce capacity below count.");
     }
