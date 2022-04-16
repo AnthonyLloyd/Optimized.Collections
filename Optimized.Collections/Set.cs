@@ -62,15 +62,19 @@ public sealed class Set<T> :
     public T this[int index]
     {
         get => _entries[index].Item;
-        set => _entries[index].Item = value;
+        set
+        {
+            if ((uint)index >= (uint)_count) Helper.ThrowArgumentOutOfRange();
+            _entries[index].Item = value;
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    Entry[] Resize()
+    Entry[] Resize(int capacity)
     {
-        if (_entries.Length == 1) return _entries = new Entry[2];
+        if (capacity == 2) return _entries = new Entry[2];
         var old_items = _entries;
-        var new_items = new Entry[old_items.Length * 2];
+        var new_items = new Entry[capacity];
         for (int i = 0; i < old_items.Length;)
         {
             var bucketIndex = old_items[i].Item.GetHashCode() & (new_items.Length - 1);
@@ -84,14 +88,14 @@ public sealed class Set<T> :
     [MethodImpl(MethodImplOptions.NoInlining)]
     int AddItem(T item, int hashCode)
     {
-        var i = _count;
-        var ent = _entries;
-        if (ent.Length == i || ent.Length == 1) ent = Resize();
-        var bucketIndex = hashCode & (ent.Length - 1);
-        ent[i].Next = ent[bucketIndex].Bucket - 1;
-        ent[i].Item = item;
-        ent[bucketIndex].Bucket = ++_count;
-        return i;
+        var count = _count;
+        var entries = _entries;
+        if (entries.Length == count || entries.Length == 1) entries = Resize(entries.Length * 2);
+        var bucketIndex = hashCode & (entries.Length - 1);
+        entries[count].Next = entries[bucketIndex].Bucket - 1;
+        entries[count].Item = item;
+        entries[bucketIndex].Bucket = ++_count;
+        return count;
     }
 
     /// <summary>Adds the specified element to the <see cref="Set{T}"/>.</summary>
@@ -128,9 +132,19 @@ public sealed class Set<T> :
     /// <param name="equalValue"></param>
     /// <param name="actualValue"></param>
     /// <returns></returns>
-    public bool TryGetValue(T equalValue, out T actualValue)
+    public bool TryGetValue(T equalValue, out T? actualValue)
     {
-        throw new NotImplementedException();
+        var i = IndexOf(equalValue);
+        if(i >= 0)
+        {
+            actualValue = _entries[i].Item;
+            return true;
+        }
+        else
+        {
+            actualValue = default;
+            return false;
+        }
     }
 
     /// <summary>Returns an enumerator that iterates through the <see cref="Set{T}"/>.</summary>
@@ -145,61 +159,49 @@ public sealed class Set<T> :
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <summary>Determines whether a <see cref="Set{T}"/> object is a proper subset of the specified collection.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object is a proper subset of other; otherwise, false.</returns>
     public bool IsProperSubsetOf(IEnumerable<T> other)
     {
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <summary>Determines whether a <see cref="Set{T}"/> object is a proper superset of the specified collection.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object is a proper superset of other; otherwise, false.</returns>
     public bool IsProperSupersetOf(IEnumerable<T> other)
     {
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <summary>Determines whether a <see cref="Set{T}"/> object is a subset of the specified collection.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object is a subset of other; otherwise, false.</returns>
     public bool IsSubsetOf(IEnumerable<T> other)
     {
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <summary>Determines whether a <see cref="Set{T}"/> object is a superset of the specified collection.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object is a superset of other; otherwise, false.</returns>
     public bool IsSupersetOf(IEnumerable<T> other)
     {
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <summary>Determines whether the current <see cref="Set{T}"/> object and a specified collection share common elements.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object and other share at least one common element; otherwise, false.</returns>
     public bool Overlaps(IEnumerable<T> other)
     {
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <summary>Determines whether a <see cref="Set{T}"/> object and the specified collection contain the same elements.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object is equal to other; otherwise, false.</returns>
     public bool SetEquals(IEnumerable<T> other)
     {
         throw new NotImplementedException();
@@ -209,7 +211,10 @@ public sealed class Set<T> :
     /// <param name="array">The one-dimensional array that is the destination of the elements copied from the <see cref="Set{T}"/> object. The array must have zero-based indexing.</param>
     public void CopyTo(T[] array)
     {
-        throw new NotImplementedException();
+        var count = _count;
+        var entries = _entries;
+        for (int i = 0; i < count; i++)
+            array[i] = entries[i].Item;
     }
 
     /// <summary>Copies the elements of a <see cref="Set{T}"/> object to an array, starting at the specified array index.</summary>
@@ -217,7 +222,10 @@ public sealed class Set<T> :
     /// <param name="arrayIndex">The zero-based index in array at which copying begins.</param>
     public void CopyTo(T[] array, int arrayIndex)
     {
-        throw new NotImplementedException();
+        var count = _count;
+        var entries = _entries;
+        for (int i = 0; i < count; i++)
+            array[i + arrayIndex] = entries[i].Item;
     }
 
     /// <summary>Copies the specified number of elements of a <see cref="Set{T}"/> object to an array, starting at the specified array index.</summary>
@@ -226,7 +234,9 @@ public sealed class Set<T> :
     /// <param name="count">The number of elements to copy to array.</param>
     public void CopyTo(T[] array, int arrayIndex, int count)
     {
-        throw new NotImplementedException();
+        var entries = _entries;
+        for (int i = 0; i < count; i++)
+            array[i + arrayIndex] = entries[i].Item;
     }
 
     /// <summary>Ensures that this set can hold the specified number of elements without growing.</summary>
@@ -234,12 +244,9 @@ public sealed class Set<T> :
     /// <returns>The new capacity of this instance.</returns>
     public int EnsureCapacity(int capacity)
     {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>Sets the capacity of a <see cref="Set{T}"/> object to the actual number of elements it contains, rounded up to a nearby, implementation-specific value.</summary>
-    public void TrimExcess()
-    {
-        throw new NotImplementedException();
+        if (capacity > _entries.Length) return Resize(Helper.PowerOf2(capacity)).Length;
+        else if (_entries.Length > 1) return _entries.Length;
+        else if (capacity == 1) return Resize(2).Length;
+        else return 0;
     }
 }
