@@ -23,35 +23,42 @@ public sealed class Set<T> :
     /// <summary>Initializes a new instance of the <see cref="Set{T}"/> class that is empty</summary>
     public Set() => _entries = Holder.Initial;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="capacity"></param>
+    /// <summary>Initializes a new instance of the <see cref="Set{T}"/> class that contains elements copied from the specified collection.</summary>
+    /// <param name="capacity">The initial capacity of the <see cref="Set{T}"/>.</param>
     public Set(int capacity)
     {
-        _entries = new Entry[capacity < 2 ? 2 : Helper.PowerOf2(capacity)];
+        _entries = capacity > 2 ? new Entry[Helper.PowerOf2(capacity)]
+                 : capacity > 0 ? new Entry[2]
+                 : Holder.Initial;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="items"></param>
-    public Set(IEnumerable<T> items)
+    /// <summary>Initializes a new instance of the <see cref="Set{T}"/> class that contains elements copied from the specified collection.</summary>
+    /// <param name="collection">The collection whose elements are copied to the new set.</param>
+    public Set(IEnumerable<T> collection)
     {
-        _entries = new Entry[2];
-        foreach (var i in items) Add(i);
+        if (collection is Set<T> set)
+        {
+            _count = set._count;
+            _entries = (Entry[])set._entries.Clone();
+        }
+        else
+        {
+            var capacity = collection is IReadOnlyCollection<T> c ? c.Count : 0;
+            _entries = capacity > 2 ? new Entry[Helper.PowerOf2(capacity)]
+                     : capacity > 0 ? new Entry[2]
+                     : Holder.Initial;
+            foreach (var item in collection)
+                Add(item);
+        }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
+    /// <summary>Gets the number of elements that are contained in a <see cref="Set{T}"/>.</summary>
+    /// <returns>The number of elements contained in the <see cref="Set{T}"/>.</returns>
     public int Count => _count;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="index"></param>
-    /// <returns></returns>
+    /// <summary>Gets or sets the element at the specified index.</summary>
+    /// <param name="index">The zero-based index of the element to get or set.</param>
+    /// <returns>The element at the specified index.</returns>
     public T this[int index]
     {
         get => _entries[index].Item;
@@ -87,11 +94,8 @@ public sealed class Set<T> :
         return i;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <returns></returns>
+    /// <summary>Adds the specified element to the <see cref="Set{T}"/>.</summary>
+    /// <param name="item">The object to add to the <see cref="Set{T}"/>.</param>
     public int Add(T item)
     {
         var entries = _entries;
@@ -101,11 +105,9 @@ public sealed class Set<T> :
         return i >= 0 ? i : AddItem(item, hashCode);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <returns></returns>
+    /// <summary>Searches for the specified object and returns the zero-based index.</summary>
+    /// <param name="item">The object to locate in the <see cref="Set{T}"/>.</param>
+    /// <returns>The zero-based index of the item within the <see cref="Set{T}"/>, if found; otherwise, –1.</returns>
     public int IndexOf(T item)
     {
         var entries = _entries;
@@ -115,17 +117,24 @@ public sealed class Set<T> :
         return i;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <returns></returns>
+    /// <summary>Determines whether a <see cref="Set{T}"/> contains the specified item.</summary>
+    /// <param name="item">The object to locate in the <see cref="Set{T}"/>.</param>
+    /// <returns>true if the item is found in the <see cref="Set{T}"/>; otherwise, false.</returns>
     public bool Contains(T item) => IndexOf(item) >= 0;
 
     /// <summary>
     /// 
     /// </summary>
+    /// <param name="equalValue"></param>
+    /// <param name="actualValue"></param>
     /// <returns></returns>
+    public bool TryGetValue(T equalValue, out T actualValue)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>Returns an enumerator that iterates through the <see cref="Set{T}"/>.</summary>
+    /// <returns>An enumerator for the <see cref="Set{T}"/>.</returns>
     public IEnumerator<T> GetEnumerator()
     {
         var count = _count;
@@ -134,10 +143,6 @@ public sealed class Set<T> :
             yield return entries[i].Item;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
@@ -145,7 +150,6 @@ public sealed class Set<T> :
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
     public bool IsProperSubsetOf(IEnumerable<T> other)
     {
         throw new NotImplementedException();
@@ -156,7 +160,6 @@ public sealed class Set<T> :
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
     public bool IsProperSupersetOf(IEnumerable<T> other)
     {
         throw new NotImplementedException();
@@ -167,7 +170,6 @@ public sealed class Set<T> :
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
     public bool IsSubsetOf(IEnumerable<T> other)
     {
         throw new NotImplementedException();
@@ -178,7 +180,6 @@ public sealed class Set<T> :
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
     public bool IsSupersetOf(IEnumerable<T> other)
     {
         throw new NotImplementedException();
@@ -189,7 +190,6 @@ public sealed class Set<T> :
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
     public bool Overlaps(IEnumerable<T> other)
     {
         throw new NotImplementedException();
@@ -200,8 +200,45 @@ public sealed class Set<T> :
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
     public bool SetEquals(IEnumerable<T> other)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>Copies the elements of a <see cref="Set{T}"/> object to an array.</summary>
+    /// <param name="array">The one-dimensional array that is the destination of the elements copied from the <see cref="Set{T}"/> object. The array must have zero-based indexing.</param>
+    public void CopyTo(T[] array)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>Copies the elements of a <see cref="Set{T}"/> object to an array, starting at the specified array index.</summary>
+    /// <param name="array">The one-dimensional array that is the destination of the elements copied from the <see cref="Set{T}"/> object. The array must have zero-based indexing.</param>
+    /// <param name="arrayIndex">The zero-based index in array at which copying begins.</param>
+    public void CopyTo(T[] array, int arrayIndex)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>Copies the specified number of elements of a <see cref="Set{T}"/> object to an array, starting at the specified array index.</summary>
+    /// <param name="array">The one-dimensional array that is the destination of the elements copied from the <see cref="Set{T}"/> object. The array must have zero-based indexing.</param>
+    /// <param name="arrayIndex">The zero-based index in array at which copying begins.</param>
+    /// <param name="count">The number of elements to copy to array.</param>
+    public void CopyTo(T[] array, int arrayIndex, int count)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>Ensures that this set can hold the specified number of elements without growing.</summary>
+    /// <param name="capacity">The minimum capacity to ensure.</param>
+    /// <returns>The new capacity of this instance.</returns>
+    public int EnsureCapacity(int capacity)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>Sets the capacity of a <see cref="Set{T}"/> object to the actual number of elements it contains, rounded up to a nearby, implementation-specific value.</summary>
+    public void TrimExcess()
     {
         throw new NotImplementedException();
     }
