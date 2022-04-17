@@ -127,11 +127,9 @@ public sealed class Set<T> :
     /// <returns>true if the item is found in the <see cref="Set{T}"/>; otherwise, false.</returns>
     public bool Contains(T item) => IndexOf(item) >= 0;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="equalValue"></param>
-    /// <param name="actualValue"></param>
+    /// <summary>Searches the <see cref="Set{T}"/> for a given value and returns the equal value it finds, if any.</summary>
+    /// <param name="equalValue">The value to search for.</param>
+    /// <param name="actualValue">The value from the <see cref="Set{T}"/> that the search found, or the default value of T when the search yielded no match.</param>
     /// <returns></returns>
     public bool TryGetValue(T equalValue,
 #if NET6_0

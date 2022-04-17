@@ -4,11 +4,13 @@ using System.Runtime.CompilerServices;
 
 namespace Optimized.Collections;
 
-/// <summary>
-/// Faster lookup. Lower memory. Lock free for read while Adding.
-/// </summary>
-/// <typeparam name="K"></typeparam>
-/// <typeparam name="V"></typeparam>
+/// <summary>Represents a strongly typed grow only collection of keys and values.</summary>
+/// <remarks>
+/// - Lock free for reads during modification for reference types (and value types that set atomically).<br/>
+/// - Better performance than <see cref="Dictionary{K, V}"/> in general.<br/>
+/// </remarks>
+/// <typeparam name="K">The type of the keys in the <see cref="Map{K, V}"/>.</typeparam>
+/// <typeparam name="V">The type of the values in the <see cref="Map{K, V}"/>.</typeparam>
 public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValuePair<K, V>> where K : IEquatable<K>
 {
     struct Entry { internal int Bucket; internal int Next; internal K Key; internal V Value; }
@@ -171,12 +173,10 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="key"></param>
-    /// <param name="valueFactory"></param>
-    /// <returns></returns>
+    /// <summary>Adds a key/value pair to the <see cref="Map{K, V}"/> by using the specified function if the key does not already exist. Returns the new value, or the existing value if the key exists.</summary>
+    /// <param name="key">The key of the element to add.</param>
+    /// <param name="valueFactory">The function used to generate a value for the key.</param>
+    /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the <see cref="Map{K, V}"/>, or the new value if the key was not in the <see cref="Map{K, V}"/>.</returns>
     public V GetOrAdd(K key, Func<K, V> valueFactory)
     {
         var ent = _entries;
@@ -192,12 +192,10 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="key"></param>
-    /// <param name="valueFactory"></param>
-    /// <returns></returns>
+    /// <summary>Adds a key/value pair to the <see cref="Map{K, V}"/> by using the specified function if the key does not already exist. Returns the new value, or the existing value if the key exists.</summary>
+    /// <param name="key">The key of the element to add.</param>
+    /// <param name="valueFactory">The function used to generate a value for the key.</param>
+    /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the <see cref="Map{K, V}"/>, or the new value if the key was not in the <see cref="Map{K, V}"/>.</returns>
     public V GetOrLockedAdd(K key, Func<K, V> valueFactory)
     {
         var ent = _entries;
@@ -223,11 +221,9 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="key"></param>
-    /// <returns></returns>
+    /// <summary>Adds a key/value pair to the <see cref="Map{K, V}"/> by using the specified function if the key does not already exist. Returns the new value, or the existing value if the key exists.</summary>
+    /// <param name="key">The key of the element to add.</param>
+    /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the <see cref="Map{K, V}"/>, or a ref to the value in the <see cref="Map{K, V}"/>.</returns>
     public ref V GetValueOrNullRef(K key)
     {
         var entries = _entries;
@@ -250,11 +246,9 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="key"></param>
-    /// <returns></returns>
+    /// <summary>Searches for the specified object and returns the zero-based index.</summary>
+    /// <param name="key">The key to locate in the <see cref="Map{K, V}"/>.</param>
+    /// <returns>The zero-based index of the item within the <see cref="Map{K, V}"/>, if found; otherwise, –1.</returns>
     public int IndexOf(K key)
     {
         var ent = _entries;
@@ -264,19 +258,15 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         return i;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="i"></param>
-    /// <returns></returns>
-    public K Key(int i) => _entries[i].Key;
+    /// <summary>Gets the key at the specified index.</summary>
+    /// <param name="index">The zero-based index of the key to get.</param>
+    /// <returns>The key at the specified index.</returns>
+    public K Key(int index) => _entries[index].Key;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="i"></param>
-    /// <returns></returns>
-    public V Value(int i) => _entries[i].Value;
+    /// <summary>Gets the value at the specified index.</summary>
+    /// <param name="index">The zero-based index of the value to get.</param>
+    /// <returns>The value at the specified index.</returns>
+    public V Value(int index) => _entries[index].Value;
 
     /// <summary>Determines whether the <see cref="Map{K, V}"/> contains the specified key.</summary>
     /// <param name="key">The key to locate in the <see cref="Map{K, V}"/>.</param>
@@ -288,19 +278,35 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <returns>true if the <see cref="Map{K, V}"/> contains an element with the specified value; otherwise, false.</returns>
     public bool ContainsValue(V value)
     {
-        throw new NotImplementedException();
+        var count = _count;
+        var entries = _entries;
+        if (value is null)
+        {
+            for (int i = 0; i < count; i++)
+                if (entries[i].Value is null) return true;
+        }
+        else
+        {
+            for (int i = 0; i < count; i++)
+                if (value.Equals(entries[i].Value)) return true;
+        }
+        return false;
     }
 
     IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
     {
-        for (int i = 0; i < _count; i++)
-            yield return new(_entries[i].Key, _entries[i].Value);
+        var count = _count;
+        var entries = _entries;
+        for (int i = 0; i < count; i++)
+            yield return new(entries[i].Key, entries[i].Value);
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        for (int i = 0; i < _count; i++)
-            yield return new KeyValuePair<K, V>(_entries[i].Key, _entries[i].Value);
+        var count = _count;
+        var entries = _entries;
+        for (int i = 0; i < count; i++)
+            yield return new KeyValuePair<K, V>(entries[i].Key, entries[i].Value);
     }
 
     /// <summary>Returns the collection of keys in a <see cref="Map{K, V}"/>.</summary>
@@ -308,8 +314,10 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     {
         get
         {
-            for (int i = 0; i < _count; i++)
-                yield return _entries[i].Key;
+            var count = _count;
+            var entries = _entries;
+            for (int i = 0; i < count; i++)
+                yield return entries[i].Key;
         }
     }
 
@@ -318,8 +326,10 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     {
         get
         {
-            for (int i = 0; i < _count; i++)
-                yield return _entries[i].Value;
+            var count = _count;
+            var entries = _entries;
+            for (int i = 0; i < count; i++)
+                yield return entries[i].Value;
         }
     }
 
