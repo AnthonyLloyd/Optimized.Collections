@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Optimized.Collections;
@@ -132,7 +133,11 @@ public sealed class Set<T> :
     /// <param name="equalValue"></param>
     /// <param name="actualValue"></param>
     /// <returns></returns>
-    public bool TryGetValue(T equalValue, out T? actualValue)
+    public bool TryGetValue(T equalValue,
+#if NET6_0
+        [MaybeNullWhen(false)]
+#endif
+        out T actualValue)
     {
         var i = IndexOf(equalValue);
         if(i >= 0)
@@ -142,7 +147,13 @@ public sealed class Set<T> :
         }
         else
         {
+#if !NET6_0
+#pragma warning disable CS8601 // Possible null reference assignment.
+#endif
             actualValue = default;
+#if !NET6_0
+#pragma warning restore CS8601 // Possible null reference assignment.
+#endif
             return false;
         }
     }

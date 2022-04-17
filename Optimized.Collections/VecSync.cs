@@ -15,7 +15,7 @@ namespace Optimized.Collections;
 /// <typeparam name="T">The type of elements in the list.</typeparam>
 public sealed class VecSync<T> : IReadOnlyList<T>
 {
-    static readonly T[] s_emptyArray = new T[0];
+    static readonly T[] s_emptyArray = Array.Empty<T>();
     readonly ReaderWriterLockSlim _lock = new();
     int _count;
     T[] _items;

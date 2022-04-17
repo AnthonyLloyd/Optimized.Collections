@@ -25,4 +25,11 @@ internal static class Helper
     {
         throw new Exception("Cannot reduce capacity below count.");
     }
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    internal static void ThrowElementWithSaemKeyAlreadyExistsInTheMap()
+    {
+        throw new ArgumentException("An element with the same key already exists in the map.");
+    }
 }

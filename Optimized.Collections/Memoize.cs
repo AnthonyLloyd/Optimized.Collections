@@ -62,13 +62,13 @@ public static class Memoize
             if (missing.Count != 0)
             {
                 var task = func(missing);
-                // map.EnsureCapacity(map.Count + missing.Count);
+                map.EnsureCapacity(map.Count + missing.Count);
                 var missingResults = await task;
                 for (int i = 0; i < missingResults.Count; i++)
                 {
                     var t = missing[i];
                     var r = missingResults[i];
-                    map[t] = r; // Should be map Add
+                    map.Add(t, r);
                     results[missingIndex[i]] = r;
                 }
             }
