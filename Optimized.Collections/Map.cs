@@ -25,23 +25,34 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <param name="capacity">The initial number of elements that the <see cref="Map{K, V}"/> can contain.</param>
     public Map(int capacity)
     {
-        if (capacity < 2) capacity = 2;
-        _entries = new Entry[Helper.PowerOf2(capacity)];
+        _entries = capacity > 2 ? new Entry[Helper.PowerOf2(capacity)]
+                 : capacity > 0 ? new Entry[2]
+                 : Holder.Initial;
     }
 
     /// <summary>Initializes a new instance of the <see cref="Map{K, V}"/> class that contains elements copied from the specified <see cref="IEnumerable{T}"/>.</summary>
     /// <param name="collection">The <see cref="IEnumerable{T}"/> whose elements are copied to the new <see cref="Map{K, V}"/>.</param>
     public Map(IEnumerable<(K, V)> collection)
     {
-        _entries = new Entry[2];
-        foreach (var (k, v) in collection) this[k] = v;
+        if (collection is Map<K, V> map)
+        {
+            _count = map._count;
+            _entries = (Entry[])map._entries.Clone();
+        }
+        else
+        {
+            var capacity = collection is IReadOnlyCollection<(K, V)> c ? c.Count : 0;
+            _entries = capacity > 2 ? new Entry[Helper.PowerOf2(capacity)]
+                     : capacity > 0 ? new Entry[2]
+                     : Holder.Initial;
+            foreach (var (key, value) in collection)
+                Add(key, value);
+        }
     }
-
-    //public Map(Map<K, V> items) ?
 
     /// <summary>Initializes a new instance of the <see cref="Map{K, V}"/> class that contains elements copied from the specified <see cref="IDictionary{K, V}"/> and uses the default equality comparer for the key type.</summary>
     /// <param name="dictionary">The <see cref="IDictionary{K, V}"/> whose elements are copied to the new <see cref="Map{K, V}"/>.</param>
-    public Map(IDictionary<K, V> dictionary)
+    public Map(IReadOnlyDictionary<K, V> dictionary)
     {
         var count = dictionary.Count;
         if (count == 0)
@@ -50,7 +61,8 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
             return;
         }
         _entries = new Entry[count > 2 ? Helper.PowerOf2(count) : 2];
-        foreach (var i in dictionary) this[i.Key] = i.Value;
+        foreach (var (key, value) in dictionary)
+            Add(key, value);
     }
 
     /// <summary>Gets the number of key/value pairs contained in the <see cref="Map{K, V}"/>.</summary>
@@ -84,8 +96,6 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         AddItem(key, value, hashCode);
         return true;
     }
-
-
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     Entry[] Resize(int capacity)

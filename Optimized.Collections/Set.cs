@@ -205,7 +205,18 @@ public sealed class Set<T> :
     /// <returns>true if the <see cref="Set{T}"/> object and other share at least one common element; otherwise, false.</returns>
     public bool Overlaps(IEnumerable<T> other)
     {
-        throw new NotImplementedException();
+        foreach (T element in other)
+            if (Contains(element))
+                return true;
+        return false;
+    }
+
+    private bool ContainsAllElements(IEnumerable<T> other)
+    {
+        foreach (T element in other)
+            if (!Contains(element))
+                return false;
+        return true;
     }
 
     /// <summary>Determines whether a <see cref="Set{T}"/> object and the specified collection contain the same elements.</summary>
@@ -213,7 +224,28 @@ public sealed class Set<T> :
     /// <returns>true if the <see cref="Set{T}"/> object is equal to other; otherwise, false.</returns>
     public bool SetEquals(IEnumerable<T> other)
     {
-        throw new NotImplementedException();
+        if (other is Set<T> otherAsSet)
+        {
+            if (_count != otherAsSet._count) return false;
+            return ContainsAllElements(otherAsSet);
+        }
+        else
+        {
+            if (_count == 0 && other is IReadOnlyCollection<T> otherAsCollection && otherAsCollection.Count > 0) return false; // what if they are both empty?
+            var bitArray = new BitArray(_count);
+            var uniqueFoundCount = 0;
+            foreach (T item in other)
+            {
+                int index = IndexOf(item);
+                if (index == -1) return false;
+                if (!bitArray.Get(index))
+                {
+                    bitArray.Set(index, true);
+                    uniqueFoundCount++;
+                }
+            }
+            return uniqueFoundCount == _count;
+        }
     }
 
     /// <summary>Copies the elements of a <see cref="Set{T}"/> object to an array.</summary>
