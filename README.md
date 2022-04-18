@@ -8,7 +8,5 @@ Map\<K, V>
 
 
 TODO:
-- Add all methods to Set plus xml docs
-- Add all methods to Map plus xml docs
 - Test all methods for Vec, Set, Map
 - Memoize Many multithreaded
