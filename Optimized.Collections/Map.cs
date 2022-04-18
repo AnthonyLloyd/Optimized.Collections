@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -11,6 +12,7 @@ namespace Optimized.Collections;
 /// </remarks>
 /// <typeparam name="K">The type of the keys in the <see cref="Map{K, V}"/>.</typeparam>
 /// <typeparam name="V">The type of the values in the <see cref="Map{K, V}"/>.</typeparam>
+[DebuggerDisplay("Count = {Count}")]
 public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValuePair<K, V>> where K : IEquatable<K>
 {
     struct Entry { internal int Bucket; internal int Next; internal K Key; internal V Value; }
@@ -61,8 +63,8 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
             return;
         }
         _entries = new Entry[count > 2 ? Helper.PowerOf2(count) : 2];
-        foreach (var (key, value) in dictionary)
-            Add(key, value);
+        foreach (var kv in dictionary)
+            Add(kv.Key, kv.Value);
     }
 
     /// <summary>Gets the number of key/value pairs contained in the <see cref="Map{K, V}"/>.</summary>

@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -10,6 +11,7 @@ namespace Optimized.Collections;
 /// - Better performance than <see cref="HashSet{T}"/> in general.<br/>
 /// </remarks>
 /// <typeparam name="T">The type of elements in the set.</typeparam>
+[DebuggerDisplay("Count = {Count}")]
 public sealed class Set<T> :
 #if NET6_0
     IReadOnlySet<T>,
@@ -138,7 +140,7 @@ public sealed class Set<T> :
         out T actualValue)
     {
         var i = IndexOf(equalValue);
-        if(i >= 0)
+        if (i >= 0)
         {
             actualValue = _entries[i].Item;
             return true;
@@ -168,38 +170,6 @@ public sealed class Set<T> :
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    /// <summary>Determines whether a <see cref="Set{T}"/> object is a proper subset of the specified collection.</summary>
-    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
-    /// <returns>true if the <see cref="Set{T}"/> object is a proper subset of other; otherwise, false.</returns>
-    public bool IsProperSubsetOf(IEnumerable<T> other)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>Determines whether a <see cref="Set{T}"/> object is a proper superset of the specified collection.</summary>
-    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
-    /// <returns>true if the <see cref="Set{T}"/> object is a proper superset of other; otherwise, false.</returns>
-    public bool IsProperSupersetOf(IEnumerable<T> other)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>Determines whether a <see cref="Set{T}"/> object is a subset of the specified collection.</summary>
-    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
-    /// <returns>true if the <see cref="Set{T}"/> object is a subset of other; otherwise, false.</returns>
-    public bool IsSubsetOf(IEnumerable<T> other)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>Determines whether a <see cref="Set{T}"/> object is a superset of the specified collection.</summary>
-    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
-    /// <returns>true if the <see cref="Set{T}"/> object is a superset of other; otherwise, false.</returns>
-    public bool IsSupersetOf(IEnumerable<T> other)
-    {
-        throw new NotImplementedException();
-    }
-
     /// <summary>Determines whether the current <see cref="Set{T}"/> object and a specified collection share common elements.</summary>
     /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
     /// <returns>true if the <see cref="Set{T}"/> object and other share at least one common element; otherwise, false.</returns>
@@ -211,33 +181,33 @@ public sealed class Set<T> :
         return false;
     }
 
-    private bool ContainsAllElements(IEnumerable<T> other)
-    {
-        foreach (T element in other)
-            if (!Contains(element))
-                return false;
-        return true;
-    }
-
     /// <summary>Determines whether a <see cref="Set{T}"/> object and the specified collection contain the same elements.</summary>
     /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
     /// <returns>true if the <see cref="Set{T}"/> object is equal to other; otherwise, false.</returns>
     public bool SetEquals(IEnumerable<T> other)
     {
-        if (other is Set<T> otherAsSet)
+        if (other is Set<T> otherSet)
         {
-            if (_count != otherAsSet._count) return false;
-            return ContainsAllElements(otherAsSet);
+            var count = _count;
+            if (count != otherSet._count)
+                return false;
+            var entries = _entries;
+            for (int i = 0; i < count; i++)
+                if (otherSet.IndexOf(entries[i].Item) == -1)
+                    return false;
+            return true;
         }
         else
         {
-            if (_count == 0 && other is IReadOnlyCollection<T> otherAsCollection && otherAsCollection.Count > 0) return false; // what if they are both empty?
+            if (_count == 0 && other is IReadOnlyCollection<T> otherAsCollection && otherAsCollection.Count > 0)
+                return false; // what if they are both empty?
             var bitArray = new BitArray(_count);
             var uniqueFoundCount = 0;
             foreach (T item in other)
             {
                 int index = IndexOf(item);
-                if (index == -1) return false;
+                if (index == -1)
+                    return false;
                 if (!bitArray.Get(index))
                 {
                     bitArray.Set(index, true);
@@ -246,6 +216,209 @@ public sealed class Set<T> :
             }
             return uniqueFoundCount == _count;
         }
+    }
+
+    /// <summary>Determines whether a <see cref="Set{T}"/> object is a subset of the specified collection.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object is a subset of other; otherwise, false.</returns>
+    public bool IsSubsetOf(IEnumerable<T> other)
+    {
+        var count = _count;
+        if (count == 0 || other == this)
+            return true;
+        if (other is Set<T> otherAsSet)
+        {
+            if (count > otherAsSet._count)
+                return false;
+            var entries = _entries;
+            for (int i = 0; i < count; i++)
+                if (otherAsSet.IndexOf(entries[i].Item) == -1)
+                    return false;
+            return true;
+        }
+
+        if (other is HashSet<T> otherAsHashSet)
+        {
+            if (count > otherAsHashSet.Count)
+                return false;
+            var entries = _entries;
+            for (int i = 0; i < count; i++)
+                if (!otherAsHashSet.Contains(entries[i].Item))
+                    return false;
+            return true;
+        }
+
+        var bitArray = new BitArray(count);
+        var uniqueFoundCount = 0;
+        foreach (T item in other)
+        {
+            int index = IndexOf(item);
+            if (index >= 0 && !bitArray.Get(index))
+            {
+                bitArray.Set(index, true);
+                uniqueFoundCount++;
+            }
+        }
+        return uniqueFoundCount == count;
+    }
+
+    /// <summary>Determines whether a <see cref="Set{T}"/> object is a proper subset of the specified collection.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object is a proper subset of other; otherwise, false.</returns>
+    public bool IsProperSubsetOf(IEnumerable<T> other)
+    {
+        var count = _count;
+        // No set is a proper subset of itself.
+        if (other == this)
+            return false;
+
+        if (other is Set<T> otherAsSet)
+        {
+            if (count >= otherAsSet._count)
+                return false;
+            var entries = _entries;
+            for (int i = 0; i < count; i++)
+                if (otherAsSet.IndexOf(entries[i].Item) == -1)
+                    return false;
+            return true;
+        }
+
+        if (other is IReadOnlyCollection<T> otherAsCollection)
+        {
+            // No set is a proper subset of an empty set.
+            if (otherAsCollection.Count == 0)
+                return false;
+
+            // The empty set is a proper subset of anything but the empty set.
+            if (count == 0)
+                return otherAsCollection.Count > 0;
+
+            // Faster if other is a hashset (and we're using same equality comparer).
+            if (other is HashSet<T> otherAsHashSet)
+            {
+                if (count >= otherAsHashSet.Count)
+                    return false;
+                var entries = _entries;
+                for (int i = 0; i < count; i++)
+                    if (!otherAsHashSet.Contains(entries[i].Item))
+                        return false;
+                return true;
+            }
+        }
+
+        var bitArray = new BitArray(count);
+        var uniqueFoundCount = 0;
+        var unfound = false;
+        foreach (T item in other)
+        {
+            int index = IndexOf(item);
+            if (index == -1)
+            {
+                if (uniqueFoundCount == count)
+                    return true;
+                unfound = true;
+            }
+            else if (!bitArray.Get(index))
+            {
+                if (++uniqueFoundCount == count && unfound)
+                    return true;
+                bitArray.Set(index, true);
+            }
+        }
+        return false;
+    }
+
+    /// <summary>Determines whether a <see cref="Set{T}"/> object is a proper superset of the specified collection.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object is a proper superset of other; otherwise, false.</returns>
+    public bool IsProperSupersetOf(IEnumerable<T> other)
+    {
+        // The empty set isn't a proper superset of any set, and a set is never a strict superset of itself.
+        if (_count == 0 || other == this)
+            return false;
+
+        if (other is Set<T> otherSet)
+        {
+            var otherCount = otherSet._count;
+            if (otherCount >= _count)
+                return false;
+            var otherEntries = otherSet._entries;
+            for (int i = 0; i < otherCount; i++)
+                if (IndexOf(otherEntries[i].Item) == -1)
+                    return false;
+            return true;
+        }
+
+        if (other is IReadOnlyCollection<T> otherAsCollection)
+        {
+            // If other is the empty set then this is a superset.
+            if (otherAsCollection.Count == 0)
+                return true;
+
+            // Faster if other is a hashset with the same equality comparer
+            if (other is HashSet<T> otherAsSet)
+            {
+                if (otherAsSet.Count >= _count)
+                    return false;
+                // Now perform element check.
+                foreach (T element in otherAsSet)
+                    if (IndexOf(element) == -1)
+                        return false;
+                return true;
+            }
+        }
+
+        // Couldn't fall out in the above cases; do it the long way
+        var bitArray = new BitArray(_count);
+        var uniqueFoundCount = 0;
+        foreach (T item in other)
+        {
+            int index = IndexOf(item);
+            if (index == -1)
+                return false;
+            if (!bitArray.Get(index))
+            {
+                bitArray.Set(index, true);
+                uniqueFoundCount++;
+            }
+        }
+        return uniqueFoundCount < _count;
+    }
+
+    /// <summary>Determines whether a <see cref="Set{T}"/> object is a superset of the specified collection.</summary>
+    /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
+    /// <returns>true if the <see cref="Set{T}"/> object is a superset of other; otherwise, false.</returns>
+    public bool IsSupersetOf(IEnumerable<T> other)
+    {
+        if (other == this) return true;
+
+        if (other is Set<T> otherSet)
+        {
+            var otherCount = otherSet._count;
+            if (otherCount > _count)
+                return false;
+            var otherEntries = otherSet._entries;
+            for (int i = 0; i < otherCount; i++)
+                if (IndexOf(otherEntries[i].Item) == -1)
+                    return false;
+            return true;
+        }
+
+        // Try to fall out early based on counts.
+        if (other is IReadOnlyCollection<T> otherAsCollection)
+        {
+            // If other is the empty set then this is a superset.
+            if (otherAsCollection.Count == 0)
+                return true;
+            // Try to compare based on counts alone if other is a hashset with same equality comparer.
+            if (other is HashSet<T> otherAsHashSet && otherAsHashSet.Count > _count)
+                return false;
+        }
+
+        foreach (T element in other)
+            if (IndexOf(element) == -1)
+                return false;
+        return true;
     }
 
     /// <summary>Copies the elements of a <see cref="Set{T}"/> object to an array.</summary>

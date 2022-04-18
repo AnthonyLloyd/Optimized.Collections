@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Optimized.Collections;
@@ -10,6 +11,7 @@ namespace Optimized.Collections;
 /// - Slightly better performance than <see cref="List{T}"/> in general.<br/>
 /// </remarks>
 /// <typeparam name="T">The type of elements in the list.</typeparam>
+[DebuggerDisplay("Count = {Count}")]
 public sealed class Vec<T> : IReadOnlyList<T>
 {
     static readonly T[] s_emptyArray = Array.Empty<T>();
