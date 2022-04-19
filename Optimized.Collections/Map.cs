@@ -360,8 +360,8 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public int EnsureCapacity(int capacity)
     {
         if (capacity > _entries.Length) return Resize(Helper.PowerOf2(capacity)).Length;
-        else if (_entries.Length > 1) return _entries.Length;
-        else if (capacity == 1) return Resize(2).Length;
-        else return 0;
+        if (_entries.Length > 1) return _entries.Length;
+        if (capacity == 1) return Resize(2).Length;
+        return 0;
     }
 }

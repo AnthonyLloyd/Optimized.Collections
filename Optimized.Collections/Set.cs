@@ -176,7 +176,7 @@ public sealed class Set<T> :
     public bool Overlaps(IEnumerable<T> other)
     {
         foreach (T element in other)
-            if (Contains(element))
+            if (IndexOf(element) != -1)
                 return true;
         return false;
     }
@@ -186,9 +186,10 @@ public sealed class Set<T> :
     /// <returns>true if the <see cref="Set{T}"/> object is equal to other; otherwise, false.</returns>
     public bool SetEquals(IEnumerable<T> other)
     {
+        var count = _count;
+
         if (other is Set<T> otherSet)
         {
-            var count = _count;
             if (count != otherSet._count)
                 return false;
             var entries = _entries;
@@ -197,25 +198,24 @@ public sealed class Set<T> :
                     return false;
             return true;
         }
-        else
+
+        if (count == 0 && other is IReadOnlyCollection<T> otherAsCollection)
+            return otherAsCollection.Count == 0;
+
+        var bitArray = new BitArray(count);
+        var uniqueFoundCount = 0;
+        foreach (T item in other)
         {
-            if (_count == 0 && other is IReadOnlyCollection<T> otherAsCollection && otherAsCollection.Count > 0)
-                return false; // what if they are both empty?
-            var bitArray = new BitArray(_count);
-            var uniqueFoundCount = 0;
-            foreach (T item in other)
+            int index = IndexOf(item);
+            if (index == -1)
+                return false;
+            if (!bitArray.Get(index))
             {
-                int index = IndexOf(item);
-                if (index == -1)
-                    return false;
-                if (!bitArray.Get(index))
-                {
-                    bitArray.Set(index, true);
-                    uniqueFoundCount++;
-                }
+                bitArray.Set(index, true);
+                uniqueFoundCount++;
             }
-            return uniqueFoundCount == _count;
         }
+        return uniqueFoundCount == count;
     }
 
     /// <summary>Determines whether a <see cref="Set{T}"/> object is a subset of the specified collection.</summary>
@@ -226,6 +226,7 @@ public sealed class Set<T> :
         var count = _count;
         if (count == 0 || other == this)
             return true;
+
         if (other is Set<T> otherAsSet)
         {
             if (count > otherAsSet._count)
@@ -268,7 +269,6 @@ public sealed class Set<T> :
     public bool IsProperSubsetOf(IEnumerable<T> other)
     {
         var count = _count;
-        // No set is a proper subset of itself.
         if (other == this)
             return false;
 
@@ -285,15 +285,10 @@ public sealed class Set<T> :
 
         if (other is IReadOnlyCollection<T> otherAsCollection)
         {
-            // No set is a proper subset of an empty set.
             if (otherAsCollection.Count == 0)
                 return false;
-
-            // The empty set is a proper subset of anything but the empty set.
             if (count == 0)
                 return otherAsCollection.Count > 0;
-
-            // Faster if other is a hashset (and we're using same equality comparer).
             if (other is HashSet<T> otherAsHashSet)
             {
                 if (count >= otherAsHashSet.Count)
@@ -333,8 +328,8 @@ public sealed class Set<T> :
     /// <returns>true if the <see cref="Set{T}"/> object is a proper superset of other; otherwise, false.</returns>
     public bool IsProperSupersetOf(IEnumerable<T> other)
     {
-        // The empty set isn't a proper superset of any set, and a set is never a strict superset of itself.
-        if (_count == 0 || other == this)
+        var count = _count;
+        if (count == 0 || other == this)
             return false;
 
         if (other is Set<T> otherSet)
@@ -351,16 +346,12 @@ public sealed class Set<T> :
 
         if (other is IReadOnlyCollection<T> otherAsCollection)
         {
-            // If other is the empty set then this is a superset.
             if (otherAsCollection.Count == 0)
                 return true;
-
-            // Faster if other is a hashset with the same equality comparer
             if (other is HashSet<T> otherAsSet)
             {
-                if (otherAsSet.Count >= _count)
+                if (otherAsSet.Count >= count)
                     return false;
-                // Now perform element check.
                 foreach (T element in otherAsSet)
                     if (IndexOf(element) == -1)
                         return false;
@@ -368,8 +359,7 @@ public sealed class Set<T> :
             }
         }
 
-        // Couldn't fall out in the above cases; do it the long way
-        var bitArray = new BitArray(_count);
+        var bitArray = new BitArray(count);
         var uniqueFoundCount = 0;
         foreach (T item in other)
         {
@@ -382,7 +372,7 @@ public sealed class Set<T> :
                 uniqueFoundCount++;
             }
         }
-        return uniqueFoundCount < _count;
+        return uniqueFoundCount < count;
     }
 
     /// <summary>Determines whether a <see cref="Set{T}"/> object is a superset of the specified collection.</summary>
@@ -404,13 +394,10 @@ public sealed class Set<T> :
             return true;
         }
 
-        // Try to fall out early based on counts.
         if (other is IReadOnlyCollection<T> otherAsCollection)
         {
-            // If other is the empty set then this is a superset.
             if (otherAsCollection.Count == 0)
                 return true;
-            // Try to compare based on counts alone if other is a hashset with same equality comparer.
             if (other is HashSet<T> otherAsHashSet && otherAsHashSet.Count > _count)
                 return false;
         }
@@ -459,8 +446,8 @@ public sealed class Set<T> :
     public int EnsureCapacity(int capacity)
     {
         if (capacity > _entries.Length) return Resize(Helper.PowerOf2(capacity)).Length;
-        else if (_entries.Length > 1) return _entries.Length;
-        else if (capacity == 1) return Resize(2).Length;
-        else return 0;
+        if (_entries.Length > 1) return _entries.Length;
+        if (capacity == 1) return Resize(2).Length;
+        return 0;
     }
 }

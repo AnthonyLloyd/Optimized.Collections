@@ -75,4 +75,119 @@ public static class Memoize
             return results;
         };
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="R"></typeparam>
+    /// <param name="func"></param>
+    /// <returns></returns>
+    public static Func<Set<T>, Task<Vec<R>>> MultiThreaded<T, R>(Func<Set<T>, Task<Vec<R>>> func) where T : IEquatable<T>
+    {
+        var map = new Map<T, R>();
+        var running = new LinkedList<(Set<T>, Task)>();
+        return async requested =>
+        {
+            var results = new Vec<R>(requested.Count);
+            var missing = new Set<T>();
+            var missingIndex = new Set<int>();
+            var runningTasks = running.First;
+            for (int i = 0; i < requested.Count; i++)
+            {
+                var t = requested[i];
+                if (map.TryGetValue(t, out var r))
+                {
+                    results[i] = r;
+                }
+                else
+                {
+                    missing.Add(t);
+                    missingIndex.Add(i);
+                }
+            }
+
+            if (missing.Count == 0) return results;
+
+            var someAlreadyRunning = false;
+            Task remainingTask;
+            lock (running)
+            {
+                var node = runningTasks;
+                while (node is not null)
+                {
+                    if (missing.Overlaps(node.Value.Item1))
+                    {
+                        someAlreadyRunning = true;
+                        break;
+                    }
+                    node = node.Next;
+                }
+
+                var remaining = someAlreadyRunning
+                              ? new Set<T>(missing.Except(running.SelectMany(i => i.Item1))) // Set needs an Except
+                              : missing;
+
+                if (remaining.Count == 0)
+                {
+                    remainingTask = Task.CompletedTask;
+                }
+                else
+                {
+                    remainingTask = Task.Run(async () =>
+                    {
+                        var remainingResults = await func(remaining);
+                        lock (map)
+                        {
+                            map.EnsureCapacity(map.Count + remaining.Count);
+                            for (int i = 0; i < remaining.Count; i++)
+                            {
+                                map.Add(remaining[i], remainingResults[i]);
+                            }
+                        }
+                        for (int i = 0; i < remaining.Count; i++)
+                        {
+                            results[missingIndex[i]] = remainingResults[i];
+                        }
+                    });
+
+                    running.AddLast((remaining, remainingTask));
+                }
+            }
+
+            if (someAlreadyRunning)
+            {
+                var node = runningTasks;
+                while (node is not null && node.Value.Item2 != remainingTask)
+                {
+                    if (missing.Overlaps(node.Value.Item1))
+                    {
+                        await node.Value.Item2;
+                        foreach (T t in node.Value.Item1)
+                        {
+                            var i = missing.IndexOf(t);
+                            if (i != -1)
+                            {
+                                results[missingIndex[i]] = map[t];
+                            }
+                        }
+                    }
+                    node = node.Next;
+                }
+            }
+
+            await remainingTask;
+
+
+            lock (running)
+            {
+                while (running.First is not null && running.First.Value.Item2.IsCompleted)
+                {
+                    running.RemoveFirst();
+                }
+            }
+
+            return results;
+        };
+    }
 }
