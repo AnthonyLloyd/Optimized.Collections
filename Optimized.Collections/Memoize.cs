@@ -38,20 +38,20 @@ public static class Memoize
     /// <typeparam name="R"></typeparam>
     /// <param name="func"></param>
     /// <returns></returns>
-    public static Func<Set<T>, Task<Vec<R>>> SingleThreaded<T, R>(Func<Set<T>, Task<Vec<R>>> func) where T : IEquatable<T>
+    public static Func<Set<T>, Task<R[]>> SingleThreaded<T, R>(Func<Set<T>, Task<R[]>> func) where T : IEquatable<T>
     {
         var map = new Map<T, R>();
         return async requested =>
         {
-            var results = new Vec<R>(requested.Count);
+            var results = new R[requested.Count];
             var missing = new Set<T>();
-            var missingIndex = new Set<int>();
-            for (int i = 0; i < requested.Count; i++)
+            var missingIndex = new Vec<int>();
+            for (int i = 0; i < results.Length; i++)
             {
                 var t = requested[i];
-                if (map.TryGetValue(t, out var r))
+                if (map.TryGetValue(t, out var result))
                 {
-                    results[i] = r;
+                    results[i] = result;
                 }
                 else
                 {
@@ -64,11 +64,10 @@ public static class Memoize
                 var task = func(missing);
                 map.EnsureCapacity(map.Count + missing.Count);
                 var missingResults = await task;
-                for (int i = 0; i < missingResults.Count; i++)
+                for (int i = 0; i < missingResults.Length; i++)
                 {
-                    var t = missing[i];
                     var r = missingResults[i];
-                    map.Add(t, r);
+                    map.Add(missing[i], r);
                     results[missingIndex[i]] = r;
                 }
             }
@@ -83,22 +82,22 @@ public static class Memoize
     /// <typeparam name="R"></typeparam>
     /// <param name="func"></param>
     /// <returns></returns>
-    public static Func<Set<T>, Task<Vec<R>>> MultiThreaded<T, R>(Func<Set<T>, Task<Vec<R>>> func) where T : IEquatable<T>
+    public static Func<Set<T>, Task<R[]>> MultiThreaded<T, R>(Func<Set<T>, Task<R[]>> func) where T : IEquatable<T>
     {
         var map = new Map<T, R>();
         var running = new LinkedList<(Set<T>, Task)>();
         return async requested =>
         {
-            var results = new Vec<R>(requested.Count);
+            var results = new R[requested.Count];
             var missing = new Set<T>();
-            var missingIndex = new Set<int>();
+            var missingIndex = new Vec<int>();
             var runningTasks = running.First;
             for (int i = 0; i < requested.Count; i++)
             {
                 var t = requested[i];
-                if (map.TryGetValue(t, out var r))
+                if (map.TryGetValue(t, out var result))
                 {
-                    results[i] = r;
+                    results[i] = result;
                 }
                 else
                 {
@@ -177,7 +176,6 @@ public static class Memoize
             }
 
             await remainingTask;
-
 
             lock (running)
             {

@@ -31,12 +31,12 @@ public class SetTests
             items =>
             {
                 var set = new Set<int>();
-                foreach (var i in items) set.Add(i);
+                for(int i = 0; i < items.Length; i++) set.Add(items[i]);
             },
             items =>
             {
                 var hashset = new HashSet<int>();
-                foreach (var i in items) hashset.Add(i);
+                for (int i = 0; i < items.Length; i++) hashset.Add(items[i]);
             }
         ).Output(writeLine);
     }

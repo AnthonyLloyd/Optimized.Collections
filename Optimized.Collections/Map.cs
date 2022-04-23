@@ -43,10 +43,17 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         }
         else
         {
-            var capacity = collection is IReadOnlyCollection<(K, V)> c ? c.Count : 0;
-            _entries = capacity > 2 ? new Entry[Helper.PowerOf2(capacity)]
-                     : capacity > 0 ? new Entry[2]
-                     : Holder.Initial;
+            if (collection is IReadOnlyCollection<(K, V)> col)
+            {
+                _entries = col.Count > 2 ? new Entry[Helper.PowerOf2(col.Count)]
+                         : col.Count > 0 ? new Entry[2]
+                         : Holder.Initial;
+            }
+            else
+            {
+                _entries = Holder.Initial;
+            }
+
             foreach (var (key, value) in collection)
                 Add(key, value);
         }
@@ -57,14 +64,16 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public Map(IReadOnlyDictionary<K, V> dictionary)
     {
         var count = dictionary.Count;
-        if (count == 0)
+        if (count > 0)
+        {
+            _entries = new Entry[count > 2 ? Helper.PowerOf2(count) : 2];
+            foreach (var kv in dictionary)
+                Add(kv.Key, kv.Value);
+        }
+        else
         {
             _entries = Holder.Initial;
-            return;
         }
-        _entries = new Entry[count > 2 ? Helper.PowerOf2(count) : 2];
-        foreach (var kv in dictionary)
-            Add(kv.Key, kv.Value);
     }
 
     /// <summary>Gets the number of key/value pairs contained in the <see cref="Map{K, V}"/>.</summary>
@@ -79,7 +88,12 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         var ent = _entries;
         var hashCode = key.GetHashCode();
         var i = ent[hashCode & (ent.Length - 1)].Bucket - 1;
-        while (i >= 0 && !key.Equals(ent[i].Key)) i = ent[i].Next;
+        int bustCount = 0;
+        while (i >= 0 && !key.Equals(ent[i].Key))
+        {
+            if (bustCount++ > 1000) throw new Exception("bust");
+            i = ent[i].Next;
+        }
         if (i >= 0) Helper.ThrowElementWithSaemKeyAlreadyExistsInTheMap();
         AddItem(key, value, hashCode);
     }
@@ -100,20 +114,19 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    Entry[] Resize(int capacity)
+    Entry[] ResizeFull(int capacity)
     {
-        var old_items = _entries;
-        if (capacity == 2) return _entries = new Entry[2];
-        var new_items = new Entry[capacity];
-        for (int i = 0; i < old_items.Length;)
+        var newEntries = new Entry[capacity];
+        var entries = _entries;
+        for (int i = 0; i < entries.Length;)
         {
-            var bucketIndex = old_items[i].Key.GetHashCode() & (new_items.Length - 1);
-            new_items[i].Next = new_items[bucketIndex].Bucket - 1;
-            new_items[i].Key = old_items[i].Key;
-            new_items[i].Value = old_items[i].Value;
-            new_items[bucketIndex].Bucket = ++i;
+            var bucketIndex = entries[i].Key.GetHashCode() & (newEntries.Length - 1);
+            newEntries[i].Next = newEntries[bucketIndex].Bucket - 1;
+            newEntries[i].Key = entries[i].Key;
+            newEntries[i].Value = entries[i].Value;
+            newEntries[bucketIndex].Bucket = ++i;
         }
-        return _entries = new_items;
+        return _entries = newEntries;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -121,7 +134,8 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     {
         var count = _count;
         var entries = _entries;
-        if (entries.Length == count || entries.Length == 1) entries = Resize(entries.Length * 2);
+        if (entries.Length == 1) entries = _entries = new Entry[2];
+        else if (entries.Length == count) entries = ResizeFull(entries.Length * 2);
         var bucketIndex = hashCode & (entries.Length - 1);
         entries[count].Next = entries[bucketIndex].Bucket - 1;
         entries[count].Key = key;
@@ -246,7 +260,8 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         else
         {
             i = _count;
-            if (entries.Length == i || entries.Length == 1) entries = Resize(entries.Length * 2);
+            if (entries.Length == 1) entries = _entries = new Entry[2];
+            else if (entries.Length == i) entries = ResizeFull(entries.Length * 2);
             var bucketIndex = hashCode & (entries.Length - 1);
             entries[i].Next = entries[bucketIndex].Bucket - 1;
             entries[i].Key = key;
@@ -359,9 +374,37 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <returns>The current capacity of the <see cref="Map{K, V}"/>.</returns>
     public int EnsureCapacity(int capacity)
     {
-        if (capacity > _entries.Length) return Resize(Helper.PowerOf2(capacity)).Length;
-        if (_entries.Length > 1) return _entries.Length;
-        if (capacity == 1) return Resize(2).Length;
-        return 0;
+        if (_count == 0)
+        {
+            if (capacity > 1) return (_entries = new Entry[Helper.PowerOf2(capacity)]).Length;
+            if (capacity == 1)
+            {
+                _entries = new Entry[2];
+                return 2;
+            }
+            return 0;
+        }
+        else
+        {
+            if (_entries.Length >= capacity) return _entries.Length;
+            return ResizeCount(Helper.PowerOf2(capacity)).Length;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    Entry[] ResizeCount(int capacity)
+    {
+        var newEntries = new Entry[capacity];
+        var count = _count;
+        var entries = _entries;
+        for (int i = 0; i < count;)
+        {
+            var bucketIndex = entries[i].Key.GetHashCode() & (newEntries.Length - 1);
+            newEntries[i].Next = newEntries[bucketIndex].Bucket - 1;
+            newEntries[i].Key = entries[i].Key;
+            newEntries[i].Value = entries[i].Value;
+            newEntries[bucketIndex].Bucket = ++i;
+        }
+        return _entries = newEntries;
     }
 }

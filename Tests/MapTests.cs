@@ -22,7 +22,7 @@ public class MapTests
             })
         );
     }
-
+    
     [Fact]
     public void Set_Performance()
     {
@@ -56,5 +56,20 @@ public class MapTests
                 foreach (var (k, _) in items) dictionary.ContainsKey(k);
             }
         ).Output(writeLine);
+    }
+
+    [Fact]
+    public void TryGetValue_Add()
+    {
+        Gen.Int.Array
+        .Sample(a =>
+        {
+            var map = new Map<int, int>();
+            foreach (var i in a)
+            {
+                if (!map.TryGetValue(i, out _))
+                    map.Add(i, i);
+            }
+        });
     }
 }

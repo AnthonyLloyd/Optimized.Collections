@@ -73,19 +73,18 @@ public sealed class Set<T> :
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    Entry[] Resize(int capacity)
+    Entry[] ResizeFull(int capacity)
     {
-        if (capacity == 2) return _entries = new Entry[2];
-        var old_items = _entries;
-        var new_items = new Entry[capacity];
-        for (int i = 0; i < old_items.Length;)
+        var newEntries = new Entry[capacity];
+        var entries = _entries;
+        for (int i = 0; i < entries.Length;)
         {
-            var bucketIndex = old_items[i].Item.GetHashCode() & (new_items.Length - 1);
-            new_items[i].Next = new_items[bucketIndex].Bucket - 1;
-            new_items[i].Item = old_items[i].Item;
-            new_items[bucketIndex].Bucket = ++i;
+            var bucketIndex = entries[i].Item.GetHashCode() & (newEntries.Length - 1);
+            newEntries[i].Next = newEntries[bucketIndex].Bucket - 1;
+            newEntries[i].Item = entries[i].Item;
+            newEntries[bucketIndex].Bucket = ++i;
         }
-        return _entries = new_items;
+        return _entries = newEntries;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -93,7 +92,8 @@ public sealed class Set<T> :
     {
         var count = _count;
         var entries = _entries;
-        if (entries.Length == count || entries.Length == 1) entries = Resize(entries.Length * 2);
+        if (entries.Length == 1) entries = _entries = new Entry[2];
+        else if (entries.Length == count) entries = ResizeFull(entries.Length * 2);
         var bucketIndex = hashCode & (entries.Length - 1);
         entries[count].Next = entries[bucketIndex].Bucket - 1;
         entries[count].Item = item;
@@ -445,9 +445,35 @@ public sealed class Set<T> :
     /// <returns>The new capacity of this instance.</returns>
     public int EnsureCapacity(int capacity)
     {
-        if (capacity > _entries.Length) return Resize(Helper.PowerOf2(capacity)).Length;
-        if (_entries.Length > 1) return _entries.Length;
-        if (capacity == 1) return Resize(2).Length;
-        return 0;
+        if (_count == 0)
+        {
+            if (capacity > 1) return (_entries = new Entry[Helper.PowerOf2(capacity)]).Length;
+            if (capacity == 1)
+            {
+                _entries = new Entry[2];
+                return 2;
+            }
+            return 0;
+        }
+        else
+        {
+            if (_entries.Length >= capacity) return _entries.Length;
+            return ResizeCount(Helper.PowerOf2(capacity)).Length;
+        }
     }
+
+    Entry[] ResizeCount(int capacity)
+    {
+        var newEntries = new Entry[capacity];
+        var count = _count;
+        var entries = _entries;
+        for (int i = 0; i < count;)
+        {
+            var bucketIndex = entries[i].Item.GetHashCode() & (newEntries.Length - 1);
+            newEntries[i].Next = newEntries[bucketIndex].Bucket - 1;
+            newEntries[i].Item = entries[i].Item;
+            newEntries[bucketIndex].Bucket = ++i;
+        }
+        return _entries = newEntries;
+    }    
 }
