@@ -20,4 +20,4 @@ jobs:
         dotnet-version: '7.0.x'
         include-prerelease: true
     - name: Test
-      run: dotnet test -c Release -l 'console;verbosity=detailed'
+      run: $env:CsCheck_Sigma = 10; dotnet test -c Release -l 'console;verbosity=detailed'; rm env:CsCheck*
