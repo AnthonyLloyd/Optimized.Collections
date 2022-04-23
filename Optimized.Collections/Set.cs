@@ -92,8 +92,8 @@ public sealed class Set<T> :
     {
         var count = _count;
         var entries = _entries;
-        if (entries.Length == 1) entries = _entries = new Entry[2];
-        else if (entries.Length == count) entries = ResizeFull(entries.Length * 2);
+        if (entries.Length == count) entries = ResizeFull(entries.Length * 2);
+        else if (entries.Length == 1) entries = _entries = new Entry[2];
         var bucketIndex = hashCode & (entries.Length - 1);
         entries[count].Next = entries[bucketIndex].Bucket - 1;
         entries[count].Item = item;
@@ -105,8 +105,8 @@ public sealed class Set<T> :
     /// <param name="item">The object to add to the <see cref="Set{T}"/>.</param>
     public int Add(T item)
     {
-        var entries = _entries;
         var hashCode = item.GetHashCode();
+        var entries = _entries;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
         while (i >= 0 && !item.Equals(entries[i].Item)) i = entries[i].Next;
         return i >= 0 ? i : AddItem(item, hashCode);
@@ -117,8 +117,8 @@ public sealed class Set<T> :
     /// <returns>The zero-based index of the item within the <see cref="Set{T}"/>, if found; otherwise, –1.</returns>
     public int IndexOf(T item)
     {
-        var entries = _entries;
         var hashCode = item.GetHashCode();
+        var entries = _entries;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
         while (i >= 0 && !item.Equals(entries[i].Item)) i = entries[i].Next;
         return i;
