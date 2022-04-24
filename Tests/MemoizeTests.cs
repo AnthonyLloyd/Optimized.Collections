@@ -172,7 +172,7 @@ public class MemoizeTests
         ).Output(writeLine);
     }
 
-    [Fact(Skip = "WIP")]
+    [Fact]
     public async Task MultiThreadedMany()
     {
         var func = (Set<int> set) =>
@@ -183,18 +183,21 @@ public class MemoizeTests
             return Task.Delay(100).ContinueWith(_ => r);
         };
 
-        await Gen.Int.HashSet.Select(hs => new Set<int>(hs)).Array
+        await Gen.Int[1, 10_000].HashSet.Select(hs => new Set<int>(hs)).Array
         .SampleAsync(async sets =>
         {
             var correct = true;
             var requested = new Set<int>();
             var memo = Memoize.MultiThreaded((Set<int> r) =>
             {
-                foreach (var i in r)
+                lock (requested)
                 {
-                    var index = requested.Add(i);
-                    if (index != requested.Count - 1)
-                        correct = false;
+                    foreach (var i in r)
+                    {
+                        var index = requested.Add(i);
+                        if (index != requested.Count - 1)
+                            correct = false;
+                    }
                 }
                 return func(r);
             });

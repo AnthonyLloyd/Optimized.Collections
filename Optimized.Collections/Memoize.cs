@@ -85,13 +85,13 @@ public static class Memoize
     public static Func<Set<T>, Task<R[]>> MultiThreaded<T, R>(Func<Set<T>, Task<R[]>> func) where T : IEquatable<T>
     {
         var map = new Map<T, R>();
-        var running = new LinkedList<(Set<T>, Task)>();
+        VecLink<(Set<T>, Task)>? running = null;
         return async requested =>
         {
             var results = new R[requested.Count];
             var missing = new Set<T>();
             var missingIndex = new Vec<int>();
-            var runningTasks = running.First;
+            var runningTasks = running;
             for (int i = 0; i < requested.Count; i++)
             {
                 var t = requested[i];
@@ -110,7 +110,7 @@ public static class Memoize
 
             var someAlreadyRunning = false;
             Task remainingTask;
-            lock (running)
+            lock (map)
             {
                 var node = runningTasks;
                 while (node is not null)
@@ -124,7 +124,7 @@ public static class Memoize
                 }
 
                 var remaining = someAlreadyRunning
-                              ? new Set<T>(missing.Except(running.SelectMany(i => i.Item1))) // Set needs an Except
+                              ? new Set<T>(missing.Except(runningTasks!.SelectMany(i => i.Item1))) // Set needs an Except
                               : missing;
 
                 if (remaining.Count == 0)
@@ -151,7 +151,8 @@ public static class Memoize
                         }
                     });
 
-                    running.AddLast((remaining, remainingTask));
+                    if (running is null) running = new VecLink<(Set<T>, Task)>((remaining, remainingTask));
+                    else running.Add((remaining, remainingTask));
                 }
             }
 
@@ -178,11 +179,11 @@ public static class Memoize
 
             await remainingTask;
 
-            lock (running)
+            lock (map)
             {
-                while (running.First is not null && running.First.Value.Item2.IsCompleted)
+                while (running is not null && running.Value.Item2.IsCompleted)
                 {
-                    running.RemoveFirst();
+                    running = running.Next;
                 }
             }
 
