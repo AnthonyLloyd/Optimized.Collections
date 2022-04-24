@@ -88,12 +88,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         var hashCode = key.GetHashCode();
         var entries = _entries;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-        int bustCount = 0;
-        while (i >= 0 && !key.Equals(entries[i].Key))
-        {
-            if (bustCount++ > 1000) throw new Exception("bust");
-            i = entries[i].Next;
-        }
+        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
         if (i >= 0) Helper.ThrowElementWithSaemKeyAlreadyExistsInTheMap();
         AddItem(key, value, hashCode);
     }

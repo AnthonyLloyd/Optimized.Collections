@@ -1,4 +1,5 @@
 # Optimized.Collections
+[![build](https://github.com/AnthonyLloyd/Optimized.Collections/workflows/CI/badge.svg?branch=master)](https://github.com/AnthonyLloyd/Optimized.Collections/actions) [![nuget](https://buildstats.info/nuget/Optimized.Collections?includePreReleases=true)](https://www.nuget.org/packages/Optimized.Collections)
 
 Optimized.Collections aims to provide drop in replacements for System.Collections with improved speed, memory or features in specific use cases.
 
@@ -8,5 +9,5 @@ Map\<K, V>
 
 
 TODO:
-- Test all methods for Vec, Set, Map
 - Memoize Many multithreaded
+- Test all methods for Vec, Set, Map

@@ -146,7 +146,8 @@ public static class Memoize
                         }
                         for (int i = 0; i < remaining.Count; i++)
                         {
-                            results[missingIndex[i]] = remainingResults[i];
+                            T t = remaining[i];
+                            results[missingIndex[missing.IndexOf(t)]] = remainingResults[i];
                         }
                     });
 

@@ -65,34 +65,36 @@ public class MemoizeTests
         ).Output(writeLine);
     }
 
-    static Func<Set<K>, Task<V[]>> MemoizeSingleThreadedMany<K, V>(Func<Set<K>, Task<V[]>> f) where K : IEquatable<K>
+    static Func<HashSet<K>, Task<V[]>> MemoizeSingleThreadedMany<K, V>(Func<HashSet<K>, Task<V[]>> f) where K : IEquatable<K>
     {
         var d = new Dictionary<K, V>();
         return async keys =>
         {
-            var missing = new Set<K>();
-            var missingIndex = new Vec<int>();
+            var missing = new HashSet<K>();
+            var missingIndex = new List<int>();
             var results = new V[keys.Count];
-            for (int i = 0; i < keys.Count; i++)
+            var i = 0;
+            foreach(var key in keys)
             {
-                var key = keys[i];
                 if (d.TryGetValue(key, out var result))
                 {
-                    results[i] = result;
+                    results[i++] = result;
                 }
                 else
                 {
                     missing.Add(key);
-                    missingIndex.Add(i);
+                    missingIndex.Add(i++);
                 }
             }
             if (missing.Count > 0)
             {
                 var missingResults = await f(missing);
-                for (int i = 0; i < missing.Count; i++)
+                i = 0;
+                foreach(var missingKey in missing)
                 {
-                    results[missingIndex[i]] = missingResults[i];
-                    d.Add(missing[i], missingResults[i]);
+                    var missingResult = missingResults[i];
+                    d.Add(missingKey, missingResult);
+                    results[missingIndex[i++]] = missingResult;
                 }
             }
             return results;
@@ -147,17 +149,65 @@ public class MemoizeTests
             return Task.FromResult(r);
         };
 
-        Gen.Int.HashSet.Select(hs => new Set<int>(hs)).Array
-        .Select(a => (a, Memoize.SingleThreaded(f), MemoizeSingleThreadedMany(f)))
+        var fhs = (HashSet<int> s) =>
+        {
+            var r = new int[s.Count];
+            var i = 0;
+            foreach(var v in s)
+                r[i++] = v;
+            return Task.FromResult(r);
+        };
+
+        Gen.Int.HashSet.Select(hs => (new Set<int>(hs), hs)).Array
+        .Select(a => (a, Memoize.SingleThreaded(f), MemoizeSingleThreadedMany(fhs)))
         .Faster(
             (items, m, _) =>
             {
-                for (int i = 0; i < items.Length; i++) m(items[i]).Wait();
+                for (int i = 0; i < items.Length; i++) m(items[i].Item1).Wait();
             },
             (items, _, d) =>
             {
-                for (int i = 0; i < items.Length; i++) d(items[i]).Wait();
+                for (int i = 0; i < items.Length; i++) d(items[i].Item2).Wait();
             }
         ).Output(writeLine);
+    }
+
+    [Fact(Skip = "WIP")]
+    public async Task MultiThreadedMany()
+    {
+        var func = (Set<int> set) =>
+        {
+            var r = new int[set.Count];
+            for (int i = 0; i < r.Length; i++)
+                r[i] = set[i];
+            return Task.Delay(100).ContinueWith(_ => r);
+        };
+
+        await Gen.Int.HashSet.Select(hs => new Set<int>(hs)).Array
+        .SampleAsync(async sets =>
+        {
+            var correct = true;
+            var requested = new Set<int>();
+            var memo = Memoize.MultiThreaded((Set<int> r) =>
+            {
+                foreach (var i in r)
+                {
+                    var index = requested.Add(i);
+                    if (index != requested.Count - 1)
+                        correct = false;
+                }
+                return func(r);
+            });
+            var tasks = Array.ConvertAll(sets, s => memo(s));
+            for(int i = 0; i < sets.Length; i++)
+            {
+                var set = sets[i];
+                var results = await tasks[i];
+                for (int j = 0; j < results.Length; j++)
+                    if (results[j] != set[j])
+                        return false;
+            }
+            return correct;
+        });
     }
 }
