@@ -85,6 +85,7 @@ public static class Memoize
     public static Func<Set<T>, Task<R[]>> MultiThreaded<T, R>(Func<Set<T>, Task<R[]>> func) where T : IEquatable<T>
     {
         var map = new Map<T, R>();
+        var runningLock = new object();
         VecLink<(Set<T>, Task)>? running = null;
         return async requested =>
         {
@@ -110,7 +111,7 @@ public static class Memoize
 
             var someAlreadyRunning = false;
             Task remainingTask;
-            lock (map)
+            lock (runningLock)
             {
                 var node = runningTasks;
                 while (node is not null)
@@ -124,7 +125,7 @@ public static class Memoize
                 }
 
                 var remaining = someAlreadyRunning
-                              ? new Set<T>(missing.Except(runningTasks!.SelectMany(i => i.Item1))) // Set needs an Except
+                              ? new Set<T>(missing.Except(runningTasks!.SelectMany(i => i.Item1))) // TODO: Set needs an Except
                               : missing;
 
                 if (remaining.Count == 0)
@@ -179,7 +180,7 @@ public static class Memoize
 
             await remainingTask;
 
-            lock (map)
+            lock (runningLock)
             {
                 while (running is not null && running.Value.Item2.IsCompleted)
                 {
