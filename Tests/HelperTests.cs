@@ -32,10 +32,10 @@ public class HelperTests
     [Fact]
     public void PowerOf2_To_Fallback()
     {
-        Gen.Int[0, int.MaxValue >> 1].Sample(i =>
+        Gen.Int[1, int.MaxValue >> 1].Sample(i =>
         {
-            var actual = Helper.PowerOf2(i);
-            var expected = PowerOf2Fallback(i);
+            int actual = Helper.PowerOf2(i);
+            int expected = PowerOf2Fallback(i);
             return actual == expected && BitOperations.IsPow2(actual)
                 && actual >= i && actual < i * 2;
         });
