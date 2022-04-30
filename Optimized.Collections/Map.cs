@@ -1,9 +1,9 @@
-﻿using System.Collections;
+﻿namespace Optimized.Collections;
+
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-
-namespace Optimized.Collections;
 
 /// <summary>Represents a strongly typed grow only collection of keys and values.</summary>
 /// <remarks>
@@ -12,6 +12,7 @@ namespace Optimized.Collections;
 /// </remarks>
 /// <typeparam name="K">The type of the keys in the <see cref="Map{K, V}"/>.</typeparam>
 /// <typeparam name="V">The type of the values in the <see cref="Map{K, V}"/>.</typeparam>
+[DebuggerTypeProxy(typeof(MapDebugView<,>))]
 [DebuggerDisplay("Count = {Count}")]
 public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValuePair<K, V>> where K : IEquatable<K>
 {

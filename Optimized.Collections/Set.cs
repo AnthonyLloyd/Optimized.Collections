@@ -1,9 +1,9 @@
-﻿using System.Collections;
+﻿namespace Optimized.Collections;
+
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-
-namespace Optimized.Collections;
 
 /// <summary>Represents a strongly typed grow only set of values that can be accessed by index.</summary>
 /// <remarks>
@@ -11,6 +11,7 @@ namespace Optimized.Collections;
 /// - Better performance than <see cref="HashSet{T}"/> in general.<br/>
 /// </remarks>
 /// <typeparam name="T">The type of elements in the set.</typeparam>
+[DebuggerTypeProxy(typeof(IReadOnlyListDebugView<>))]
 [DebuggerDisplay("Count = {Count}")]
 public sealed class Set<T> :
 #if NET6_0
@@ -169,6 +170,46 @@ public sealed class Set<T> :
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public Set<T> Except(IEnumerable<T> other)
+    {
+        var count = _count;
+        if (other is Set<T> otherSet)
+        {
+            var set = new Set<T>();
+            for (int i = 0; i < count; i++)
+            {
+                var item = _entries[i].Item;
+                if (!otherSet.Contains(item))
+                    set.Add(item);
+            }
+            return set;
+        }
+        else
+        {
+            var bitArray = new BitArray(count, true);
+            foreach (T item in other)
+            {
+                int index = IndexOf(item);
+                if (index >= 0 && bitArray.Get(index))
+                {
+                    bitArray.Set(index, false);
+                }
+            }
+            var set = new Set<T>();
+            for (int i = 0; i < count; i++)
+            {
+                if (bitArray.Get(i))
+                    set.Add(_entries[i].Item);
+            }
+            return set;
+        }
+    }
 
     /// <summary>Determines whether the current <see cref="Set{T}"/> object and a specified collection share common elements.</summary>
     /// <param name="other">The collection to compare to the current <see cref="Set{T}"/> object.</param>
@@ -475,5 +516,5 @@ public sealed class Set<T> :
             newEntries[bucketIndex].Bucket = ++i;
         }
         return _entries = newEntries;
-    }    
+    }
 }

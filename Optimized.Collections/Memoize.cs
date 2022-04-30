@@ -125,7 +125,9 @@ public static class Memoize
                 }
 
                 var remaining = someAlreadyRunning
-                              ? new Set<T>(missing.Except(runningTasks!.SelectMany(i => i.Item1))) // TODO: Set needs an Except
+                              ? (runningTasks!.Next is null
+                                    ? missing.Except(runningTasks!.Value.Item1)
+                                    : new Set<T>(missing.Except(runningTasks!.SelectMany(i => i.Item1))))
                               : missing;
 
                 if (remaining.Count == 0)

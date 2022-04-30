@@ -23,4 +23,5 @@ jobs:
       env:
         CsCheck_Sigma: 20
         CsCheck_Time: 10
+        CsCheck_Timeout: 180
       run: dotnet test -c Release -l 'console;verbosity=detailed'

@@ -1,8 +1,8 @@
-﻿using System.Collections;
+﻿namespace Optimized.Collections;
+
+using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-
-namespace Optimized.Collections;
 
 /// <summary>Represents a strongly typed grow only vector of objects that can be accessed by index.</summary>
 /// <remarks>
@@ -11,6 +11,7 @@ namespace Optimized.Collections;
 /// - Slightly better performance than <see cref="List{T}"/> in general.<br/>
 /// </remarks>
 /// <typeparam name="T">The type of elements in the list.</typeparam>
+[DebuggerTypeProxy(typeof(IReadOnlyListDebugView<>))]
 [DebuggerDisplay("Count = {Count}")]
 public sealed class Vec<T> : IReadOnlyList<T>
 {

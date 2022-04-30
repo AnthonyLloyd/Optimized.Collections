@@ -1,7 +1,10 @@
 ﻿namespace Optimized.Collections;
 
 using System.Collections;
+using System.Diagnostics;
 
+[DebuggerTypeProxy(typeof(IReadOnlyListDebugView<>))]
+[DebuggerDisplay("Count = {Count}")]
 internal class VecLink<T> : IReadOnlyList<T>
 {
     public VecLink(T value) => Value = value;

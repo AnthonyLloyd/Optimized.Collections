@@ -180,7 +180,7 @@ public class MemoizeTests
             var r = new int[set.Count];
             for (int i = 0; i < r.Length; i++)
                 r[i] = set[i];
-            return Task.Delay(100).ContinueWith(_ => r);
+            return Task.FromResult(r);
         };
 
         await Gen.Int[1, 10_000].HashSet.Select(hs => new Set<int>(hs)).Array
@@ -216,8 +216,7 @@ public class MemoizeTests
 
     static Func<HashSet<T>, Task<R[]>> MemoizeMultiThreadedMany<T, R>(Func<HashSet<T>, Task<R[]>> func) where T : IEquatable<T>
     {
-        var dictionary = new Dictionary<T, R>();
-        var dictionaryLock = new ReaderWriterLockSlim();
+        var dictionary = new ConcurrentDictionary<T, R>();
         VecLink<(HashSet<T>, Task)>? running = null;
         var runningLock = new object();
         return async keys =>
@@ -226,7 +225,6 @@ public class MemoizeTests
             var results = new R[keys.Count];
             var runningTasks = running;
             var i = 0;
-            dictionaryLock.EnterReadLock();
             foreach (var key in keys)
             {
                 if (dictionary.TryGetValue(key, out var result))
@@ -238,7 +236,6 @@ public class MemoizeTests
                     missing.Add(key, i++);
                 }
             }
-            dictionaryLock.ExitReadLock();
             if (missing.Count == 0) return results;
 
             bool someAlreadyRunning;
@@ -260,14 +257,11 @@ public class MemoizeTests
                     remainingTask = Task.Run(async () =>
                     {
                         var remainingResults = await func(remaining);
-                        dictionaryLock.EnterWriteLock();
-                        dictionary.EnsureCapacity(dictionary.Count + remaining.Count);
                         int j = 0;
                         foreach (var remainingItem in remaining)
                         {
-                            dictionary.Add(remainingItem, remainingResults[j++]);
+                            dictionary.TryAdd(remainingItem, remainingResults[j++]);
                         }
-                        dictionaryLock.ExitWriteLock();
                         int i = 0;
                         foreach (var t in remaining)
                         {
@@ -292,9 +286,7 @@ public class MemoizeTests
                         {
                             if(missing.TryGetValue(t, out var index))
                             {
-                                dictionaryLock.EnterReadLock();
                                 var result = dictionary[t];
-                                dictionaryLock.ExitReadLock();
                                 results[index] = result;
                             }
                         }
@@ -326,7 +318,7 @@ public class MemoizeTests
             int i = 0;
             foreach(var result in set)
                 r[i++] = result;
-            return Task.Delay(100).ContinueWith(_ => r);
+            return Task.FromResult(r);
         };
 
         await Gen.Int[1, 10_000].HashSet.Array
@@ -359,5 +351,45 @@ public class MemoizeTests
             }
             return correct;
         });
+    }
+
+    [Fact]
+    public void MultiThreadedMany_Performance()
+    {
+        var fSet = (Set<int> s) =>
+        {
+            var r = new int[s.Count];
+            for (int i = 0; i < r.Length; i++)
+                r[i] = s[i];
+            return Task.Delay(10).ContinueWith(_ => r);
+        };
+
+        var fHashSet = (HashSet<int> s) =>
+        {
+            var r = new int[s.Count];
+            var i = 0;
+            foreach (var v in s)
+                r[i++] = v;
+            return Task.Delay(10).ContinueWith(_ => r);
+        };
+
+        Gen.Int[1, 10_000].HashSet.Select(hs => (Set: new Set<int>(hs), HashSet: hs)).Array
+        .Select(a => (a, Memoize.MultiThreaded(fSet), MemoizeMultiThreadedMany(fHashSet)))
+        .Faster(
+            (items, m, _) =>
+            {
+                var tasks = new Task[items.Length];
+                for (int i = 0; i < items.Length; i++)
+                    tasks[i] = m(items[i].Set);
+                Task.WaitAll(tasks);
+            },
+            (items, _, d) =>
+            {
+                var tasks = new Task[items.Length];
+                for (int i = 0; i < items.Length; i++)
+                    tasks[i] = d(items[i].HashSet);
+                Task.WaitAll(tasks);
+            }
+        ).Output(writeLine);
     }
 }

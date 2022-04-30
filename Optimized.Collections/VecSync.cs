@@ -1,8 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
+﻿namespace Optimized.Collections;
 
-namespace Optimized.Collections;
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 /// <summary>Represents a syncronised version of <see cref="Vec{T}"/>.</summary>
 /// <remarks>
@@ -13,6 +14,8 @@ namespace Optimized.Collections;
 /// - Much better performance than <see cref="ConcurrentBag{T}"/> in general.<br/>
 /// </remarks>
 /// <typeparam name="T">The type of elements in the list.</typeparam>
+[DebuggerTypeProxy(typeof(IReadOnlyListDebugView<>))]
+[DebuggerDisplay("Count = {Count}")]
 public sealed class VecSync<T> : IReadOnlyList<T>
 {
     static readonly T[] s_emptyArray = Array.Empty<T>();
