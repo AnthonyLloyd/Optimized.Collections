@@ -1,4 +1,6 @@
-﻿namespace Optimized.Collections;
+﻿using System.Collections.Concurrent;
+
+namespace Optimized.Collections;
 
 /// <summary>
 /// 
@@ -173,6 +175,108 @@ public static class Memoize
                             if (i != -1)
                             {
                                 results[missingIndex[i]] = map[t];
+                            }
+                        }
+                    }
+                    node = node.Next;
+                }
+            }
+
+            await remainingTask;
+
+            lock (runningLock)
+            {
+                while (running is not null && running.Value.Item2.IsCompleted)
+                {
+                    running = running.Next;
+                }
+            }
+
+            return results;
+        };
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="R"></typeparam>
+    /// <param name="func"></param>
+    /// <returns></returns>
+    public static Func<HashSet<T>, Task<R[]>> MultiThreaded<T, R>(Func<HashSet<T>, Task<R[]>> func) where T : IEquatable<T>
+    {
+        var dictionary = new ConcurrentDictionary<T, R>();
+        VecLink<(HashSet<T>, Task)>? running = null;
+        var runningLock = new object();
+        return async keys =>
+        {
+            var missing = new Dictionary<T, int>();
+            var results = new R[keys.Count];
+            var runningTasks = running;
+            var i = 0;
+            foreach (var key in keys)
+            {
+                if (dictionary.TryGetValue(key, out var result))
+                {
+                    results[i++] = result;
+                }
+                else
+                {
+                    missing.Add(key, i++);
+                }
+            }
+            if (missing.Count == 0) return results;
+
+            bool someAlreadyRunning;
+            Task remainingTask;
+            lock (runningLock)
+            {
+                var remaining = new HashSet<T>(
+                    runningTasks is null ? missing.Keys
+                                         : missing.Keys.Except(runningTasks.SelectMany(i => i.Item1)));
+
+                someAlreadyRunning = remaining.Count < missing.Count;
+
+                if (remaining.Count == 0)
+                {
+                    remainingTask = Task.CompletedTask;
+                }
+                else
+                {
+                    remainingTask = Task.Run(async () =>
+                    {
+                        var remainingResults = await func(remaining);
+                        int j = 0;
+                        foreach (var remainingItem in remaining)
+                        {
+                            dictionary.TryAdd(remainingItem, remainingResults[j++]);
+                        }
+                        int i = 0;
+                        foreach (var t in remaining)
+                        {
+                            results[missing[t]] = remainingResults[i++];
+                        }
+                    });
+
+                    if (running is null) running = new VecLink<(HashSet<T>, Task)>((remaining, remainingTask));
+                    else running.Add((remaining, remainingTask));
+                }
+            }
+
+            if (someAlreadyRunning)
+            {
+                var node = runningTasks;
+                while (node is not null && node.Value.Item2 != remainingTask)
+                {
+                    if (node.Value.Item1.Overlaps(missing.Keys))
+                    {
+                        await node.Value.Item2;
+                        foreach (T t in node.Value.Item1)
+                        {
+                            if (missing.TryGetValue(t, out var index))
+                            {
+                                var result = dictionary[t];
+                                results[index] = result;
                             }
                         }
                     }

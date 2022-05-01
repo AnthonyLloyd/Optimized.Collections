@@ -14,12 +14,72 @@ public class VecTests
     {
         Gen.Int.Array.Select(a => (new Vec<int>(a), new List<int>(a)))
         .SampleModelBased(
-            Gen.Int.Operation<Vec<int>, List<int>>((ls, l, i) =>
+            Gen.Int.Operation<Vec<int>, List<int>>((vec, list, i) =>
             {
-                ls.Add(i);
-                l.Add(i);
+                vec.Add(i);
+                list.Add(i);
             })
         );
+    }
+
+    [Fact]
+    public void AddNoExcess_ModelBased()
+    {
+        Gen.Int.Array.Select(a => (new Vec<int>(a), new List<int>(a)))
+        .SampleModelBased(
+            Gen.Int.Operation<Vec<int>, List<int>>((vec, list, i) =>
+            {
+                vec.AddNoExcess(i);
+                list.Add(i);
+            })
+        );
+    }
+
+    [Fact]
+    public void Set_ModelBased()
+    {
+        Gen.Int.Array.Select(a => (new Vec<int>(a), new List<int>(a)))
+        .SampleModelBased(
+            Gen.Int[0, 100].Operation<Vec<int>, List<int>>((vec, list, i) =>
+            {
+                if (i < vec.Count)
+                    vec[i] = i;
+                else
+                    vec.Add(i);
+
+                if (i < list.Count)
+                    list[i] = i;
+                else
+                    list.Add(i);
+            })
+        );
+    }
+
+    [Fact]
+    public void AddRange_ModelBased()
+    {
+        Gen.Int.Array.Select(a => (new Vec<int>(a), new List<int>(a)))
+        .SampleModelBased(
+            Gen.Int.HashSet.Operation<Vec<int>, List<int>>((vec, list, i) =>
+            {
+                vec.AddRange(i);
+                list.AddRange(i);
+            })
+        );
+    }
+
+    [Fact]
+    public void IndexOf()
+    {
+        Gen.Int.Array.Select(Gen.Int, (a, i) => (new Vec<int>(a), new List<int>(a), i))
+        .Sample((vec, list, i) => vec.IndexOf(i) == list.IndexOf(i));
+    }
+
+    [Fact]
+    public void LastIndexOf()
+    {
+        Gen.Int.Array.Select(Gen.Int, (a, i) => (new Vec<int>(a), new List<int>(a), i))
+        .Sample((vec, list, i) => vec.LastIndexOf(i) == list.LastIndexOf(i));
     }
 
     [Fact(Skip = "Close")]
@@ -45,10 +105,11 @@ public class VecTests
     {
         Gen.Byte.Array.Select(a => new Vec<byte>(a))
         .SampleConcurrent(
-            Gen.Byte.Operation<Vec<byte>>((l, i) => { lock (l) l.Add(i); }),
-            Gen.Int.NonNegative.Operation<Vec<byte>>((l, i) => { if (i < l.Count) { _ = l[i]; } }),
-            Gen.Int.NonNegative.Select(Gen.Byte).Operation<Vec<byte>>((l, t) => { if (t.V0 < l.Count) l[t.V0] = t.V1; }),
-            Gen.Operation<Vec<byte>>(l => l.ToArray())
+            Gen.Byte.Operation<Vec<byte>>((v, i) => { lock (v) v.Add(i); }),
+            Gen.Int.NonNegative.Operation<Vec<byte>>((v, i) => { if (i < v.Count) { _ = v[i]; } }),
+            Gen.Int.NonNegative.Select(Gen.Byte).Operation<Vec<byte>>((v, t) => { if (t.V0 < v.Count) v[t.V0] = t.V1; }),
+            Gen.Operation<Vec<byte>>(v => v.ToArray()),
+            Gen.Operation<Vec<byte>>(v => _ = v.Capacity)
         );
     }
 }

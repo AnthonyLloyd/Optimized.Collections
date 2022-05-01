@@ -181,7 +181,7 @@ public sealed class Set<T> :
         var count = _count;
         if (other is Set<T> otherSet)
         {
-            var set = new Set<T>();
+            var set = new Set<T>(count);
             for (int i = 0; i < count; i++)
             {
                 var item = _entries[i].Item;
@@ -201,7 +201,7 @@ public sealed class Set<T> :
                     bitArray.Set(index, false);
                 }
             }
-            var set = new Set<T>();
+            var set = new Set<T>(count);
             for (int i = 0; i < count; i++)
             {
                 if (bitArray.Get(i))
