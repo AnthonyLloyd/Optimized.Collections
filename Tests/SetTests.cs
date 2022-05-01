@@ -59,6 +59,13 @@ public class SetTests
     }
 
     [Fact]
+    public void Contains()
+    {
+        Gen.Int[0, 1000].Array.Select(Gen.Int[0, 1000], (a, i) => (new Set<int>(a), new HashSet<int>(a), i))
+        .Sample((set, hashset, i) => set.Contains(i) == hashset.Contains(i));
+    }
+
+    [Fact]
     public void SetEquals()
     {
         Gen.Select(Gen.Int[1, 10].HashSet[0, 10], Gen.Int[1, 10].Array[0, 10])

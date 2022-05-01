@@ -439,8 +439,9 @@ public sealed class Vec<T> : IReadOnlyList<T>
     public T[] ToArray()
     {
         int count = _count;
+        var items = _items;
         var array = new T[count];
-        Array.Copy(_items, array, count);
+        Array.Copy(items, array, count);
         return array;
     }
 
@@ -449,9 +450,10 @@ public sealed class Vec<T> : IReadOnlyList<T>
     public List<T> ToList()
     {
         int count = _count;
+        var items = _items;
         var list = new List<T>(count);
         for (int i = 0; i < count; i++)
-            list.Add(_items[i]);
+            list.Add(items[i]);
         return list;
     }
 

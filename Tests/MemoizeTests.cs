@@ -231,7 +231,7 @@ public class MemoizeTests
         {
             var correct = true;
             var requested = new Set<int>();
-            var memo = Memoize.MultiThreaded((HashSet<int> r) =>
+            var memo = MultiThreadedStandard((HashSet<int> r) =>
             {
                 lock (requested)
                 {
@@ -279,7 +279,7 @@ public class MemoizeTests
         };
 
         Gen.Int[1, 10_000].HashSet.Select(hs => (Set: new Set<int>(hs), HashSet: hs)).Array
-        .Select(a => (a, Memoize.MultiThreaded(fSet), Memoize.MultiThreaded(fHashSet)))
+        .Select(a => (a, Memoize.MultiThreaded(fSet), MultiThreadedStandard(fHashSet)))
         .Faster(
             (items, m, _) =>
             {
@@ -296,5 +296,99 @@ public class MemoizeTests
                 Task.WaitAll(tasks);
             }
         ).Output(writeLine);
+    }
+
+    static Func<HashSet<T>, Task<R[]>> MultiThreadedStandard<T, R>(Func<HashSet<T>, Task<R[]>> func) where T : IEquatable<T>
+    {
+        var dictionary = new ConcurrentDictionary<T, R>();
+        VecLink<(HashSet<T>, Task)>? running = null;
+        var runningLock = new object();
+        return async keys =>
+        {
+            var missing = new Dictionary<T, int>();
+            var results = new R[keys.Count];
+            var runningTasks = running;
+            var i = 0;
+            foreach (var key in keys)
+            {
+                if (dictionary.TryGetValue(key, out var result))
+                {
+                    results[i++] = result;
+                }
+                else
+                {
+                    missing.Add(key, i++);
+                }
+            }
+            if (missing.Count == 0) return results;
+
+            bool someAlreadyRunning;
+            Task remainingTask;
+            lock (runningLock)
+            {
+                var remaining = new HashSet<T>(
+                    runningTasks is null ? missing.Keys
+                                         : missing.Keys.Except(runningTasks.SelectMany(i => i.Item1)));
+
+                someAlreadyRunning = remaining.Count < missing.Count;
+
+                if (remaining.Count == 0)
+                {
+                    remainingTask = Task.CompletedTask;
+                }
+                else
+                {
+                    remainingTask = Task.Run(async () =>
+                    {
+                        var remainingResults = await func(remaining);
+                        int j = 0;
+                        foreach (var remainingItem in remaining)
+                        {
+                            dictionary.TryAdd(remainingItem, remainingResults[j++]);
+                        }
+                        int i = 0;
+                        foreach (var t in remaining)
+                        {
+                            results[missing[t]] = remainingResults[i++];
+                        }
+                    });
+
+                    if (running is null) running = new VecLink<(HashSet<T>, Task)>((remaining, remainingTask));
+                    else running.Add((remaining, remainingTask));
+                }
+            }
+
+            if (someAlreadyRunning)
+            {
+                var node = runningTasks;
+                while (node is not null && node.Value.Item2 != remainingTask)
+                {
+                    if (node.Value.Item1.Overlaps(missing.Keys))
+                    {
+                        await node.Value.Item2;
+                        foreach (T t in node.Value.Item1)
+                        {
+                            if (missing.TryGetValue(t, out var index))
+                            {
+                                results[index] = dictionary[t];
+                            }
+                        }
+                    }
+                    node = node.Next;
+                }
+            }
+
+            await remainingTask;
+
+            lock (runningLock)
+            {
+                while (running is not null && running.Value.Item2.IsCompleted)
+                {
+                    running = running.Next;
+                }
+            }
+
+            return results;
+        };
     }
 }
