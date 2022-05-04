@@ -2,7 +2,6 @@
 
 using System.Collections;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 /// <summary>Represents a strongly typed grow only set of values that can be accessed by index.</summary>
@@ -136,7 +135,7 @@ public sealed class Set<T> :
     /// <returns></returns>
     public bool TryGetValue(T equalValue,
 #if NET6_0
-        [MaybeNullWhen(false)]
+        [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)]
 #endif
         out T actualValue)
     {

@@ -2,7 +2,6 @@
 
 using System.Collections;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 /// <summary>Represents a strongly typed grow only collection of keys and values.</summary>
@@ -169,7 +168,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <returns>true if the <see cref="Map{K, V}"/> contains an element with the specified key; otherwise, false.</returns>
     public bool TryGetValue(K key,
 #if NET6_0
-        [MaybeNullWhen(false)]
+        [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)]
 #endif
         out V value)
     {
