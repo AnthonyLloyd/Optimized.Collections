@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-
-namespace Optimized.Collections;
+﻿namespace Optimized.Collections;
 
 /// <summary>Memoization functions are an optimization technique that stores results for quick reuse.</summary>
 public static class Memoize
