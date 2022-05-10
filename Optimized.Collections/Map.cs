@@ -292,7 +292,13 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <summary>Determines whether the <see cref="Map{K, V}"/> contains the specified key.</summary>
     /// <param name="key">The key to locate in the <see cref="Map{K, V}"/>.</param>
     /// <returns>true if the <see cref="Map{K, V}"/> contains an element with the specified key; otherwise, false.</returns>
-    public bool ContainsKey(K key) => IndexOf(key) != -1;
+    public bool ContainsKey(K key)
+    {
+        var entries = _entries;
+        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
+        return i >= 0;
+    }
 
     /// <summary>Determines whether the <see cref="Map{K, V}"/> contains a specific value.</summary>
     /// <param name="value">The value to locate in the <see cref="Map{K, V}"/>. The value can be null for reference types.</param>
