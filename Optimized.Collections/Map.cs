@@ -274,7 +274,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public int IndexOf(K key)
     {
         var entries = _entries;
-        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        var i = entries[(entries.Length - 1) & key.GetHashCode()].Bucket - 1;
         while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
         return i;
     }
@@ -295,9 +295,9 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public bool ContainsKey(K key)
     {
         var entries = _entries;
-        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        var i = entries[(entries.Length - 1) & key.GetHashCode()].Bucket - 1;
         while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-        return i >= 0;
+        return i != -1;
     }
 
     /// <summary>Determines whether the <see cref="Map{K, V}"/> contains a specific value.</summary>
