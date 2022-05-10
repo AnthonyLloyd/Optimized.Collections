@@ -273,9 +273,8 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <returns>The zero-based index of the item within the <see cref="Map{K, V}"/>, if found; otherwise, –1.</returns>
     public int IndexOf(K key)
     {
-        var hashCode = key.GetHashCode();
         var entries = _entries;
-        var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
+        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
         while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
         return i;
     }
