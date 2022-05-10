@@ -15,10 +15,9 @@ These can be particularly important in collection based logic and caches.
 
 # Memoize
 
-A set of high performance single and multi-threaded memoize functions for Func\<T, R>, Func<Set\<T>, R[]> and Func<IReadOnlyList\<T>, R[]>.
+A set of high performance single and multi-threaded memoize functions for Func\<T, R>, Func<Set\<T>, R[]>, Func<IReadOnlyList\<T>, R[]>, Func<Set\<T>, Task<R[]>> and Func<IReadOnlyList\<T>, Task<R[]>>.
 
 TODO
-- Can Entry be split out into Key and Value arrays? Performance implications but possibly some useful functionality.
 - Indexed update for Set item and Map value. Useful but what is the best API?
 - SetSync\<T> and MapSync\<T>.
 - Expose VecLink\<T>.
