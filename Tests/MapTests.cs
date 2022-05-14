@@ -44,18 +44,12 @@ public class MapTests
     [Fact]
     public void ContainsKey_Performance()
     {
-        Gen.Dictionary(Gen.Int, Gen.Byte)
-        .Select(a => (a, new Map<int, byte>(a), new Dictionary<int, byte>(a)))
+        Gen.Select(Gen.Int[0, 1000], Gen.Dictionary(Gen.Int[0, 1000], Gen.Int))
+        .Select((i, d) => (i, new Map<int, int>(d), new Dictionary<int, int>(d)))
         .Faster(
-            (items, map, _) =>
-            {
-                foreach (var (k, _) in items) map.ContainsKey(k);
-            },
-            (items, _, dictionary) =>
-            {
-                foreach (var (k, _) in items) dictionary.ContainsKey(k);
-            }
-        ).Output(writeLine);
+            (i, map, _) => map.ContainsKey(i),
+            (i, _, dictionary) => dictionary.ContainsKey(i)
+        , repeat: 1000).Output(writeLine);
     }
 
     [Fact]

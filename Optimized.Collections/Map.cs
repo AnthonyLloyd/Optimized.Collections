@@ -295,22 +295,14 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public bool ContainsKey(K key)
     {
         var entries = _entries;
-        var i = entries[(entries.Length - 1) & key.GetHashCode()].Bucket - 1;
-        do
+        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        while ((uint)i < (uint)entries.Length)
         {
-            if ((uint)i >= (uint)entries.Length)
-                goto ReturnNotFound;
-            ref var entry = ref entries[i];
-            if (key.Equals(entry.Key))
-                goto ReturnFound;
-            i = entry.Next;
-
-        } while (true);
-
-        ReturnNotFound:
-            return false;
-        ReturnFound:
-            return true;
+            if (entries[i].Key.Equals(key))
+                return true;
+            i = entries[i].Next;
+        }
+        return false;
     }
 
     /// <summary>Determines whether the <see cref="Map{K, V}"/> contains a specific value.</summary>
