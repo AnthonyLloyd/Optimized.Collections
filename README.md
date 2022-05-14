@@ -22,3 +22,4 @@ TODO
 - SetSync\<T> and MapSync\<T>.
 - Expose VecLink\<T>.
 - Are SetLink\<T> or MapLink\<K, V> useful?
+- Vec1\<T>, Set1\<T>, Map1\<K, V> make a lot of sense and optimal for Set and Map as no Holder.Initial branch.

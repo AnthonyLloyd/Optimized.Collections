@@ -296,8 +296,21 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     {
         var entries = _entries;
         var i = entries[(entries.Length - 1) & key.GetHashCode()].Bucket - 1;
-        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-        return i >= 0;
+        do
+        {
+            if ((uint)i >= (uint)entries.Length)
+                goto ReturnNotFound;
+            ref var entry = ref entries[i];
+            if (key.Equals(entry.Key))
+                goto ReturnFound;
+            i = entry.Next;
+
+        } while (true);
+
+        ReturnNotFound:
+            return false;
+        ReturnFound:
+            return true;
     }
 
     /// <summary>Determines whether the <see cref="Map{K, V}"/> contains a specific value.</summary>
