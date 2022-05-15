@@ -88,8 +88,15 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         var hashCode = key.GetHashCode();
         var entries = _entries;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-        if (i >= 0) Helper.ThrowElementWithSaemKeyAlreadyExistsInTheMap();
+        while ((uint)i < (uint)entries.Length)
+        {
+            ref var entry = ref entries[i];
+            if (entry.Key.Equals(key))
+            {
+                Helper.ThrowElementWithSaemKeyAlreadyExistsInTheMap();
+            }
+            i = entry.Next;
+        }
         AddItem(key, value, hashCode);
     }
 
@@ -102,10 +109,17 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         var hashCode = key.GetHashCode();
         var entries = _entries;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-        if (i >= 0) return false;
-        AddItem(key, value, hashCode);
-        return true;
+        while ((uint)i < (uint)entries.Length)
+        {
+            ref var entry = ref entries[i];
+            if (entry.Key.Equals(key))
+            {
+                AddItem(key, value, hashCode);
+                return true;
+            }
+            i = entry.Next;
+        }
+        return false;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -145,20 +159,35 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     {
         get
         {
-            var hashCode = key.GetHashCode();
             var entries = _entries;
-            var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-            while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-            return entries[i].Value;
+            var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+            while ((uint)i < (uint)entries.Length)
+            {
+                ref var entry = ref entries[i];
+                if (entry.Key.Equals(key))
+                {
+                    return entry.Value;
+                }
+                i = entry.Next;
+            }
+            throw new KeyNotFoundException();
         }
         set
         {
-            var hashCode = key.GetHashCode();
             var entries = _entries;
+            var hashCode = key.GetHashCode();
             var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-            while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-            if (i >= 0) entries[i].Value = value;
-            else AddItem(key, value, hashCode);
+            while ((uint)i < (uint)entries.Length)
+            {
+                ref var entry = ref entries[i];
+                if (entry.Key.Equals(key))
+                {
+                    entry.Value = value;
+                    return;
+                }
+                i = entry.Next;
+            }
+            AddItem(key, value, hashCode);
         }
     }
 
@@ -172,26 +201,26 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
 #endif
         out V value)
     {
-        var hashCode = key.GetHashCode();
         var entries = _entries;
-        var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-        if (i >= 0)
+        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        while ((uint)i < (uint)entries.Length)
         {
-            value = entries[i].Value;
-            return true;
+            ref var entry = ref entries[i];
+            if (entry.Key.Equals(key))
+            {
+                value = entry.Value;
+                return true;
+            }
+            i = entry.Next;
         }
-        else
-        {
 #if !NET6_0
 #pragma warning disable CS8601 // Possible null reference assignment.
 #endif
-            value = default;
+        value = default;
 #if !NET6_0
 #pragma warning restore CS8601 // Possible null reference assignment.
 #endif
-            return false;
-        }
+        return false;
     }
 
     /// <summary>Adds a key/value pair to the <see cref="Map{K, V}"/> by using the specified function if the key does not already exist. Returns the new value, or the existing value if the key exists.</summary>
@@ -200,17 +229,21 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the <see cref="Map{K, V}"/>, or the new value if the key was not in the <see cref="Map{K, V}"/>.</returns>
     public V GetOrAdd(K key, Func<K, V> valueFactory)
     {
-        var hashCode = key.GetHashCode();
         var entries = _entries;
+        var hashCode = key.GetHashCode();
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-        if (i >= 0) return entries[i].Value;
-        else
+        while ((uint)i < (uint)entries.Length)
         {
-            var value = valueFactory(key);
-            AddItem(key, value, hashCode);
-            return value;
+            ref var entry = ref entries[i];
+            if (entry.Key.Equals(key))
+            {
+                return entry.Value;
+            }
+            i = entry.Next;
         }
+        var value = valueFactory(key);
+        AddItem(key, value, hashCode);
+        return value;
     }
 
     /// <summary>Adds a key/value pair to the <see cref="Map{K, V}"/> by using the specified function if the key does not already exist. Returns the new value, or the existing value if the key exists.</summary>
@@ -219,26 +252,34 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the <see cref="Map{K, V}"/>, or the new value if the key was not in the <see cref="Map{K, V}"/>.</returns>
     public V GetOrLockedAdd(K key, Func<K, V> valueFactory)
     {
-        var hashCode = key.GetHashCode();
         var entries = _entries;
+        var hashCode = key.GetHashCode();
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-        if (i >= 0) return entries[i].Value;
-        else
+        while ((uint)i < (uint)entries.Length)
         {
-            lock (this)
+            ref var entry = ref entries[i];
+            if (entry.Key.Equals(key))
             {
-                entries = _entries;
-                i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-                while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-                if (i >= 0) return entries[i].Value;
-                else
-                {
-                    var value = valueFactory(key);
-                    AddItem(key, value, hashCode);
-                    return value;
-                }
+                return entry.Value;
             }
+            i = entry.Next;
+        }
+        lock (this)
+        {
+            entries = _entries;
+            i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
+            while ((uint)i < (uint)entries.Length)
+            {
+                ref var entry = ref entries[i];
+                if (entry.Key.Equals(key))
+                {
+                    return entry.Value;
+                }
+                i = entry.Next;
+            }
+            var value = valueFactory(key);
+            AddItem(key, value, hashCode);
+            return value;
         }
     }
 
@@ -247,25 +288,29 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <returns>The value for the key. This will be either the existing value for the key if the key is already in the <see cref="Map{K, V}"/>, or a ref to the value in the <see cref="Map{K, V}"/>.</returns>
     public ref V GetValueOrNullRef(K key)
     {
-        var hashCode = key.GetHashCode();
         var entries = _entries;
+        var hashCode = key.GetHashCode();
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
-        if (i >= 0) return ref entries[i].Value;
-        else
+        while ((uint)i < (uint)entries.Length)
         {
-            i = _count;
-            if (entries.Length == 1) entries = _entries = new Entry[2];
-            else if (entries.Length == i) entries = ResizeFull(entries.Length * 2);
-            var bucketIndex = hashCode & (entries.Length - 1);
-            entries[i].Next = entries[bucketIndex].Bucket - 1;
-            entries[i].Key = key;
-#pragma warning disable CS8601 // Possible null reference assignment.
-            entries[i].Value = default;
-#pragma warning restore CS8601 // Possible null reference assignment.
-            entries[bucketIndex].Bucket = ++_count;
-            return ref entries[i].Value;
+            ref var entry = ref entries[i];
+            if (entry.Key.Equals(key))
+            {
+                return ref entry.Value;
+            }
+            i = entry.Next;
         }
+        i = _count;
+        if (entries.Length == 1) entries = _entries = new Entry[2];
+        else if (entries.Length == i) entries = ResizeFull(entries.Length * 2);
+        var bucketIndex = hashCode & (entries.Length - 1);
+        entries[i].Next = entries[bucketIndex].Bucket - 1;
+        entries[i].Key = key;
+#pragma warning disable CS8601 // Possible null reference assignment.
+        entries[i].Value = default;
+#pragma warning restore CS8601 // Possible null reference assignment.
+        entries[bucketIndex].Bucket = ++_count;
+        return ref entries[i].Value;
     }
 
     /// <summary>Searches for the specified object and returns the zero-based index.</summary>
@@ -274,8 +319,16 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public int IndexOf(K key)
     {
         var entries = _entries;
-        var i = entries[(entries.Length - 1) & key.GetHashCode()].Bucket - 1;
-        while (i >= 0 && !key.Equals(entries[i].Key)) i = entries[i].Next;
+        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        while ((uint)i < (uint)entries.Length)
+        {
+            ref var entry = ref entries[i];
+            if (entry.Key.Equals(key))
+            {
+                return i;
+            }
+            i = entry.Next;
+        }
         return i;
     }
 

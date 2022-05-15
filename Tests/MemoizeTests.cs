@@ -26,18 +26,18 @@ public class MemoizeTests
         
         var f = (int i) => i;
 
-        Gen.Int.Array
+        Gen.Int[0, 1000].Array
         .Select(a => (a, Memoize.SingleThreaded(f), MemoizeSingleThreadedStandard(f)))
         .Faster(
             (items, m, _) =>
             {
-                foreach (var i in items) m(i);
+                for(int i = 0; i < items.Length; i++) m(items[i]);
             },
             (items, _, d) =>
             {
-                foreach (var i in items) d(i);
+                for (int i = 0; i < items.Length; i++) d(items[i]);
             }
-        ).Output(writeLine);
+        , sigma: 100, threads: 1).Output(writeLine);
     }
 
     [Fact]
@@ -56,11 +56,11 @@ public class MemoizeTests
         .Faster(
             (items, m, _) =>
             {
-                foreach (var i in items) m(i);
+                for (int i = 0; i < items.Length; i++) m(items[i]);
             },
             (items, _, d) =>
             {
-                foreach (var i in items) d(i);
+                for (int i = 0; i < items.Length; i++) d(items[i]);
             }
         ).Output(writeLine);
     }
@@ -278,7 +278,7 @@ public class MemoizeTests
             return Task.Delay(10).ContinueWith(_ => r);
         };
 
-        Gen.Int[1, 10_000].HashSet.Select(hs => (Set: new Set<int>(hs), HashSet: hs)).Array
+        Gen.Int[1, 1000].HashSet.Select(hs => (Set: new Set<int>(hs), HashSet: new HashSet<int>(hs))).Array[2, 10]
         .Select(a => (a, Memoize.MultiThreaded(fSet), MultiThreadedStandard(fHashSet)))
         .Faster(
             (items, m, _) =>
@@ -295,7 +295,7 @@ public class MemoizeTests
                     tasks[i] = d(items[i].HashSet);
                 Task.WaitAll(tasks);
             }
-        ).Output(writeLine);
+        , sigma: 10, threads: 1).Output(writeLine);
     }
 
     static Func<HashSet<T>, Task<R[]>> MultiThreadedStandard<T, R>(Func<HashSet<T>, Task<R[]>> func) where T : IEquatable<T>

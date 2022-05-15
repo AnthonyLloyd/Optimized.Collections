@@ -38,31 +38,18 @@ public class SetTests
                 var hashset = new HashSet<int>();
                 for (int i = 0; i < items.Length; i++) hashset.Add(items[i]);
             }
-        ).Output(writeLine);
+        , threads: 1).Output(writeLine);
     }
 
     [Fact]
     public void Contains_Performance()
     {
-        Gen.Int.HashSet
-        .Select(a => (a, new Set<int>(a), new HashSet<int>(a)))
+        Gen.Select(Gen.Int[0, 1000], Gen.Int[0, 1000].HashSet)
+        .Select((i, d) => (i, new Set<int>(d), new HashSet<int>(d)))
         .Faster(
-            (items, set, _) =>
-            {
-                foreach (var i in items) set.Contains(i);
-            },
-            (items, _, hashset) =>
-            {
-                foreach (var i in items) hashset.Contains(i);
-            }
-        ).Output(writeLine);
-    }
-
-    [Fact]
-    public void Contains()
-    {
-        Gen.Int[0, 1000].Array.Select(Gen.Int[0, 1000], (a, i) => (new Set<int>(a), new HashSet<int>(a), i))
-        .Sample((set, hashset, i) => set.Contains(i) == hashset.Contains(i));
+            (i, set, _) => set.Contains(i),
+            (i, _, hashset) => hashset.Contains(i)
+        , sigma: 100, repeat: 100, threads: 1).Output(writeLine);
     }
 
     [Fact]

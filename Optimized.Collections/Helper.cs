@@ -40,4 +40,11 @@ internal static class Helper
     {
         throw new ArgumentException("An element with the same key already exists in the map.");
     }
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    internal static void ThrowKeyNotFoundException()
+    {
+        throw new KeyNotFoundException();
+    }
 }

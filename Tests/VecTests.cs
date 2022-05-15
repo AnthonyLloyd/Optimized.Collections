@@ -82,22 +82,22 @@ public class VecTests
         .Sample((vec, list, i) => vec.LastIndexOf(i) == list.LastIndexOf(i));
     }
 
-    [Fact(Skip = "Close")]
+    [Fact(Skip ="Close")]
     public void Add_Performance()
     {
-        Gen.Int.Array
+        Gen.Int.Array[5, 50]
         .Faster(
             items =>
             {
                 var vec = new Vec<int>();
-                foreach (var i in items) vec.Add(i);
+                for (int i = 0; i < items.Length; i++) vec.Add(items[i]);
             },
             items =>
             {
                 var list = new List<int>();
-                foreach (var i in items) list.Add(i);
+                for (int i = 0; i < items.Length; i++) list.Add(items[i]);
             }
-        ).Output(writeLine);
+        , sigma: 100, threads: 1).Output(writeLine);
     }
 
     [Fact]

@@ -105,11 +105,19 @@ public sealed class Set<T> :
     /// <param name="item">The object to add to the <see cref="Set{T}"/>.</param>
     public int Add(T item)
     {
-        var hashCode = item.GetHashCode();
         var entries = _entries;
+        var hashCode = item.GetHashCode();
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-        while (i >= 0 && !item.Equals(entries[i].Item)) i = entries[i].Next;
-        return i >= 0 ? i : AddItem(item, hashCode);
+        while (i >= 0)
+        {
+            ref var entry = ref entries[i];
+            if (entry.Item.Equals(item))
+            {
+                return i;
+            }
+            i = entry.Next;
+        }
+        return AddItem(item, hashCode);
     }
 
     /// <summary>Searches for the specified object and returns the zero-based index.</summary>
@@ -117,17 +125,38 @@ public sealed class Set<T> :
     /// <returns>The zero-based index of the item within the <see cref="Set{T}"/>, if found; otherwise, –1.</returns>
     public int IndexOf(T item)
     {
-        var hashCode = item.GetHashCode();
         var entries = _entries;
-        var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
-        while (i >= 0 && !item.Equals(entries[i].Item)) i = entries[i].Next;
+        var i = entries[item.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        while (i >= 0)
+        {
+            ref var entry = ref entries[i];
+            if (entry.Item.Equals(item))
+            {
+                return i;
+            }
+            i = entry.Next;
+        }
         return i;
     }
 
     /// <summary>Determines whether a <see cref="Set{T}"/> contains the specified item.</summary>
     /// <param name="item">The object to locate in the <see cref="Set{T}"/>.</param>
     /// <returns>true if the item is found in the <see cref="Set{T}"/>; otherwise, false.</returns>
-    public bool Contains(T item) => IndexOf(item) >= 0;
+    public bool Contains(T item)
+    {
+        var entries = _entries;
+        var i = entries[item.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        while (i >= 0)
+        {
+            ref var entry = ref entries[i];
+            if (entry.Item.Equals(item))
+            {
+                return true;
+            }
+            i = entry.Next;
+        }
+        return false;
+    }
 
     /// <summary>Searches the <see cref="Set{T}"/> for a given value and returns the equal value it finds, if any.</summary>
     /// <param name="equalValue">The value to search for.</param>

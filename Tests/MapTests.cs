@@ -49,7 +49,7 @@ public class MapTests
         .Faster(
             (i, map, _) => map.ContainsKey(i),
             (i, _, dictionary) => dictionary.ContainsKey(i)
-        , repeat: 1000).Output(writeLine);
+        , sigma: 50, repeat: 100, threads: 1).Output(writeLine);
     }
 
     [Fact]
