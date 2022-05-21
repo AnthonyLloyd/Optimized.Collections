@@ -295,7 +295,7 @@ public class MemoizeTests
                     tasks[i] = d(items[i].HashSet);
                 Task.WaitAll(tasks);
             }
-        , sigma: 10, threads: 1).Output(writeLine);
+        , sigma: 10, threads: 1, raiseexception: false).Output(writeLine);
     }
 
     static Func<HashSet<T>, Task<R[]>> MultiThreadedStandard<T, R>(Func<HashSet<T>, Task<R[]>> func) where T : IEquatable<T>
