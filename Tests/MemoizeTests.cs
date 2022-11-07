@@ -23,7 +23,7 @@ public class MemoizeTests
                 return r;
             };
         }
-        
+
         var f = (int i) => i;
 
         Gen.Int[0, 1000].Array
@@ -48,31 +48,25 @@ public class MemoizeTests
             var d = new ConcurrentDictionary<T, R>();
             return i => d.GetOrAdd(i, func);
         }
-        
-        var f = (int i) => i;
 
-        Gen.Int.Array
+        var f = (int i) => { Thread.Sleep(20); return i; };
+
+        Gen.Int[0, 9].Array[100]
         .Select(a => (a, Memoize.MultiThreaded(f), MemoizeMultiThreadedStandard(f)))
         .Faster(
-            (items, m, _) =>
-            {
-                for (int i = 0; i < items.Length; i++) m(items[i]);
-            },
-            (items, _, d) =>
-            {
-                for (int i = 0; i < items.Length; i++) d(items[i]);
-            }
-        ).Output(writeLine);
+            (items, m, _) => Parallel.For(0, items.Length, i => m(items[i])),
+            (items, _, d) => Parallel.For(0, items.Length, i => d(items[i]))
+        , threads: 1).Output(writeLine);
     }
 
     [Fact]
     public async Task SingleThreadedMany()
     {
-        var f = (Set<int> s) =>
+        var f = (IReadOnlyCollection<int> s) =>
         {
             var r = new int[s.Count];
-            for (int i = 0; i < r.Length; i++)
-                r[i] = s[i];
+            var i = 0;
+            foreach (var x in s) r[i++] = x;
             return Task.FromResult(r);
         };
 
@@ -81,7 +75,7 @@ public class MemoizeTests
         {
             var correct = true;
             var requested = new Set<int>();
-            var m = Memoize.SingleThreaded((Set<int> r) =>
+            var m = Memoize.SingleThreaded((IReadOnlyCollection<int> r) =>
             {
                 foreach (var i in r)
                 {
@@ -95,8 +89,12 @@ public class MemoizeTests
             {
                 var results = await m(set);
                 for (int i = 0; i < results.Length; i++)
+                {
                     if (results[i] != set[i])
+                    {
                         return false;
+                    }
+                }
             }
             return correct;
         });
@@ -140,12 +138,12 @@ public class MemoizeTests
                 return results;
             };
         }
-        
-        var fSet = (Set<int> s) =>
+
+        var fSet = (IReadOnlyCollection<int> s) =>
         {
             var r = new int[s.Count];
-            for (int i = 0; i < r.Length; i++)
-                r[i] = s[i];
+            var i = 0;
+            foreach (var x in s) r[i++] = x;
             return Task.FromResult(r);
         };
 
@@ -175,11 +173,11 @@ public class MemoizeTests
     [Fact]
     public async Task MultiThreadedMany()
     {
-        var func = (Set<int> set) =>
+        var func = (IReadOnlyCollection<int> set) =>
         {
             var r = new int[set.Count];
-            for (int i = 0; i < r.Length; i++)
-                r[i] = set[i];
+            var i = 0;
+            foreach (var x in set) r[i++] = x;
             return Task.FromResult(r);
         };
 
@@ -188,7 +186,7 @@ public class MemoizeTests
         {
             var correct = true;
             var requested = new Set<int>();
-            var memo = Memoize.MultiThreaded((Set<int> r) =>
+            var memo = Memoize.MultiThreaded((IReadOnlyCollection<int> r) =>
             {
                 lock (requested)
                 {
@@ -261,11 +259,11 @@ public class MemoizeTests
     [Fact]
     public void MultiThreadedMany_Performance()
     {
-        var fSet = (Set<int> s) =>
+        var fSet = (IReadOnlyCollection<int> s) =>
         {
             var r = new int[s.Count];
-            for (int i = 0; i < r.Length; i++)
-                r[i] = s[i];
+            var i = 0;
+            foreach (var x in s) r[i++] = x;
             return Task.Delay(10).ContinueWith(_ => r);
         };
 

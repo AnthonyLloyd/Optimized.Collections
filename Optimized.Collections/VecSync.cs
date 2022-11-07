@@ -39,7 +39,11 @@ public sealed class VecSync<T> : IReadOnlyList<T>
             _items = new T[ts.Count];
             ts.CopyTo(_items, 0);
         }
-        else _items = collection.ToArray();
+        else
+        {
+            _items = collection.ToArray();
+        }
+
         _count = _items.Length;
     }
 
@@ -124,7 +128,11 @@ public sealed class VecSync<T> : IReadOnlyList<T>
             items[count] = item;
             _count = count + 1;
         }
-        else AddWithResize(item, _count);
+        else
+        {
+            AddWithResize(item, _count);
+        }
+
         _lock.ExitWriteLock();
     }
 
@@ -140,7 +148,11 @@ public sealed class VecSync<T> : IReadOnlyList<T>
             items[count] = item;
             _count = count + 1;
         }
-        else AddWithResize(item, 1);
+        else
+        {
+            AddWithResize(item, 1);
+        }
+
         _lock.ExitWriteLock();
     }
 
@@ -181,9 +193,14 @@ public sealed class VecSync<T> : IReadOnlyList<T>
     {
         _lock.EnterWriteLock();
         if (_count == 0)
+        {
             _items = s_emptyArray;
+        }
         else
+        {
             Array.Resize(ref _items, _count);
+        }
+
         _lock.ExitWriteLock();
     }
 

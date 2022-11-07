@@ -35,7 +35,11 @@ public sealed class Vec<T> : IReadOnlyList<T>
             _items = new T[ts.Count];
             ts.CopyTo(_items, 0);
         }
-        else _items = collection.ToArray();
+        else
+        {
+            _items = collection.ToArray();
+        }
+
         _count = _items.Length;
     }
 
@@ -107,7 +111,10 @@ public sealed class Vec<T> : IReadOnlyList<T>
             items[count] = item;
             _count = count + 1;
         }
-        else AddWithResize(item, _count);
+        else
+        {
+            AddWithResize(item, _count);
+        }
     }
 
     /// <summary>Adds an object to the end of the <see cref="Vec{T}"/>. If required, the capacity of the list is increase by one before adding the new element.</summary>
@@ -121,7 +128,10 @@ public sealed class Vec<T> : IReadOnlyList<T>
             items[count] = item;
             _count = count + 1;
         }
-        else AddWithResize(item, 1);
+        else
+        {
+            AddWithResize(item, 1);
+        }
     }
 
     /// <summary>Adds the elements of the specified collection to the end of the <see cref="Vec{T}"/>.</summary>

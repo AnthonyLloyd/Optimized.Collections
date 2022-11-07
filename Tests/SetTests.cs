@@ -49,7 +49,7 @@ public class SetTests
         .Faster(
             (i, set, _) => set.Contains(i),
             (i, _, hashset) => hashset.Contains(i)
-        , sigma: 100, repeat: 100, threads: 1, raiseexception: false).Output(writeLine);
+        , sigma: 100, threads: 1, repeat: 100, raiseexception: false).Output(writeLine);
     }
 
     [Fact]

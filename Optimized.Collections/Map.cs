@@ -3,6 +3,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 /// <summary>Represents a strongly typed grow only collection of keys and values.</summary>
 /// <remarks>
@@ -195,11 +196,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <param name="key">The key of the value to get.</param>
     /// <param name="value">When this method returns, contains the value associated with the specified key, if the key is found; otherwise, the default value for the type of the value parameter. This parameter is passed uninitialized.</param>
     /// <returns>true if the <see cref="Map{K, V}"/> contains an element with the specified key; otherwise, false.</returns>
-    public bool TryGetValue(K key,
-#if NET6_0
-        [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)]
-#endif
-        out V value)
+    public bool TryGetValue(K key, [MaybeNullWhen(false)] out V value)
     {
         var entries = _entries;
         var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
@@ -213,13 +210,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
             }
             i = entry.Next;
         }
-#if !NET6_0
-#pragma warning disable CS8601 // Possible null reference assignment.
-#endif
         value = default;
-#if !NET6_0
-#pragma warning restore CS8601 // Possible null reference assignment.
-#endif
         return false;
     }
 

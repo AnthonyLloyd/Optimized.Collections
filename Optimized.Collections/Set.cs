@@ -2,6 +2,7 @@
 
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 /// <summary>Represents a strongly typed grow only set of values that can be accessed by index.</summary>
@@ -12,11 +13,7 @@ using System.Runtime.CompilerServices;
 /// <typeparam name="T">The type of elements in the set.</typeparam>
 [DebuggerTypeProxy(typeof(IReadOnlyListDebugView<>))]
 [DebuggerDisplay("Count = {Count}")]
-public sealed class Set<T> :
-#if NET6_0
-    IReadOnlySet<T>,
-#endif
-    IReadOnlyList<T> where T : IEquatable<T>
+public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquatable<T>
 {
     struct Entry { internal int Bucket; internal int Next; internal T Item; }
     static class Holder { internal static Entry[] Initial = new Entry[1]; }
@@ -161,12 +158,7 @@ public sealed class Set<T> :
     /// <summary>Searches the <see cref="Set{T}"/> for a given value and returns the equal value it finds, if any.</summary>
     /// <param name="equalValue">The value to search for.</param>
     /// <param name="actualValue">The value from the <see cref="Set{T}"/> that the search found, or the default value of T when the search yielded no match.</param>
-    /// <returns></returns>
-    public bool TryGetValue(T equalValue,
-#if NET6_0
-        [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)]
-#endif
-        out T actualValue)
+    public bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue)
     {
         var i = IndexOf(equalValue);
         if (i >= 0)
@@ -176,13 +168,7 @@ public sealed class Set<T> :
         }
         else
         {
-#if !NET6_0
-#pragma warning disable CS8601 // Possible null reference assignment.
-#endif
             actualValue = default;
-#if !NET6_0
-#pragma warning restore CS8601 // Possible null reference assignment.
-#endif
             return false;
         }
     }
@@ -244,9 +230,12 @@ public sealed class Set<T> :
     /// <returns>true if the <see cref="Set{T}"/> object and other share at least one common element; otherwise, false.</returns>
     public bool Overlaps(IEnumerable<T> other)
     {
-        foreach (T element in other)
+        foreach (var element in other)
+        {
             if (IndexOf(element) != -1)
                 return true;
+        }
+
         return false;
     }
 
@@ -263,8 +252,10 @@ public sealed class Set<T> :
                 return false;
             var entries = _entries;
             for (int i = 0; i < count; i++)
+            {
                 if (otherSet.IndexOf(entries[i].Item) == -1)
                     return false;
+            }
             return true;
         }
 
@@ -302,8 +293,11 @@ public sealed class Set<T> :
                 return false;
             var entries = _entries;
             for (int i = 0; i < count; i++)
+            {
                 if (otherAsSet.IndexOf(entries[i].Item) == -1)
                     return false;
+            }
+
             return true;
         }
 
@@ -313,8 +307,11 @@ public sealed class Set<T> :
                 return false;
             var entries = _entries;
             for (int i = 0; i < count; i++)
+            {
                 if (!otherAsHashSet.Contains(entries[i].Item))
                     return false;
+            }
+
             return true;
         }
 
@@ -347,8 +344,11 @@ public sealed class Set<T> :
                 return false;
             var entries = _entries;
             for (int i = 0; i < count; i++)
+            {
                 if (otherAsSet.IndexOf(entries[i].Item) == -1)
                     return false;
+            }
+
             return true;
         }
 
@@ -364,8 +364,11 @@ public sealed class Set<T> :
                     return false;
                 var entries = _entries;
                 for (int i = 0; i < count; i++)
+                {
                     if (!otherAsHashSet.Contains(entries[i].Item))
                         return false;
+                }
+
                 return true;
             }
         }
@@ -408,8 +411,11 @@ public sealed class Set<T> :
                 return false;
             var otherEntries = otherSet._entries;
             for (int i = 0; i < otherCount; i++)
+            {
                 if (IndexOf(otherEntries[i].Item) == -1)
                     return false;
+            }
+
             return true;
         }
 
@@ -422,8 +428,11 @@ public sealed class Set<T> :
                 if (otherAsSet.Count >= count)
                     return false;
                 foreach (T element in otherAsSet)
+                {
                     if (IndexOf(element) == -1)
                         return false;
+                }
+
                 return true;
             }
         }
@@ -458,8 +467,11 @@ public sealed class Set<T> :
                 return false;
             var otherEntries = otherSet._entries;
             for (int i = 0; i < otherCount; i++)
+            {
                 if (IndexOf(otherEntries[i].Item) == -1)
                     return false;
+            }
+
             return true;
         }
 
@@ -472,8 +484,11 @@ public sealed class Set<T> :
         }
 
         foreach (T element in other)
+        {
             if (IndexOf(element) == -1)
                 return false;
+        }
+
         return true;
     }
 

@@ -15,7 +15,11 @@ These can be particularly important in collection based logic and caches.
 
 # Memoize
 
-A set of high performance single and multi-threaded memoize functions for Func\<T, R>, Func<Set\<T>, R[]>, Func<IReadOnlyList\<T>, R[]>, Func<Set\<T>, Task<R[]>> and Func<IReadOnlyList\<T>, Task<R[]>>.
+A set of high performance single and multi-threaded memoize functions for Func\<T, R>, Func<Set\<T>, R[]>, Func<IReadOnlyCollection\<T>, R[]>, Func<Set\<T>, Task<R[]>> and Func<IReadOnlyCollection\<T>, Task<R[]>>.
+
+
+**Rebooting this now NET7.0 is RC**
+
 
 TODO
 - Indexed update for Set item and Map value. Useful but what is the best API?

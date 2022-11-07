@@ -5,34 +5,24 @@ using System.Diagnostics;
 
 [DebuggerTypeProxy(typeof(IReadOnlyListDebugView<>))]
 [DebuggerDisplay("Count = {Count}")]
-internal class VecLink2<T> : IReadOnlyList<T>
+internal class VecLink<T> : IReadOnlyList<T>
 {
-    public VecLink2<T>? Next;
-    public T? Value;
+    public VecLink(T value) => Value = value;
+    public VecLink<T>? Next;
+    public T Value;
 
     public void Add(T t)
     {
         var node = this;
         while (node.Next is not null) node = node.Next;
-        //lock (node)
-        //{
-        //    if (node.Next is null)
-        //    {
-                node.Value = t;
-                node.Next = new();
-        //    }
-        //    else
-        //    {
-        //        node.Next.Add(t);
-        //    }
-        //}
+        node.Next = new VecLink<T>(t);
     }
 
     public int Count
     {
         get
         {
-            var count = 0;
+            var count = 1;
             var node = Next;
             while (node is not null)
             {
@@ -50,27 +40,28 @@ internal class VecLink2<T> : IReadOnlyList<T>
             var node = this;
             while(index != 0)
             {
-                node = node.Next!;
+                node = node!.Next;
             }
-            return node.Value!;
+            return node!.Value;
         }
         set
         {
             var node = this;
             while (index != 0)
             {
-                node = node.Next!;
+                node = node!.Next;
             }
-            node.Value = value;
+            node!.Value = value;
         }
     }
 
     public IEnumerator<T> GetEnumerator()
     {
-        var node = this;
-        while (node.Next is not null)
+        yield return Value;
+        var node = Next;
+        while (node is not null)
         {
-            yield return node.Value!;
+            yield return node.Value;
             node = node.Next;
         }
     }

@@ -22,7 +22,7 @@ public class MapTests
             })
         );
     }
-    
+
     [Fact]
     public void Set_Performance()
     {
