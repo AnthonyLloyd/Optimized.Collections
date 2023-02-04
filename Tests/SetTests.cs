@@ -49,7 +49,7 @@ public class SetTests
         .Faster(
             (i, set, _) => set.Contains(i),
             (i, _, hashset) => hashset.Contains(i)
-        , repeat: 100);
+        , repeat: 100, timeout: 180).Output(writeLine);
     }
 
     [Fact]

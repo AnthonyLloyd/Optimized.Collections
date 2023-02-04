@@ -109,12 +109,9 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
         while (i >= 0)
         {
-            ref var entry = ref entries[i];
-            if (entry.Item.Equals(item))
-            {
+            if (item.Equals(entries[i].Item))
                 return i;
-            }
-            i = entry.Next;
+            i = entries[i].Next;
         }
         return AddItem(item, hashCode);
     }
@@ -128,12 +125,9 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var i = entries[(item.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while (i >= 0)
         {
-            ref var entry = ref entries[i];
-            if (entry.Item.Equals(item))
-            {
+            if (item.Equals(entries[i].Item))
                 return i;
-            }
-            i = entry.Next;
+            i = entries[i].Next;
         }
         return i;
     }
@@ -147,12 +141,9 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var i = entries[(item.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while (i >= 0)
         {
-            ref var entry = ref entries[i];
-            if (entry.Item.Equals(item))
-            {
+            if (item.Equals(entries[i].Item))
                 return true;
-            }
-            i = entry.Next;
+            i = entries[i].Next;
         }
         return false;
     }

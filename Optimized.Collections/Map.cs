@@ -343,7 +343,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         var i = entries[(key.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
         {
-            if (entries[i].Key.Equals(key))
+            if (key.Equals(entries[i].Key))
                 return true;
             i = entries[i].Next;
         }
