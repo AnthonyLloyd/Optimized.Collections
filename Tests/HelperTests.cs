@@ -7,6 +7,31 @@ using Xunit;
 
 public class HelperTests
 {
+    const uint FIBONACCI_HASH_U = 2654435769;
+    const int FIBONACCI_HASH = -1640531527;
+
+    [Fact]
+    public void Golden()
+    {
+        var g = (1.0 + Math.Sqrt(5)) * 0.5;
+        var f = (uint)Math.Round(uint.MaxValue / g);
+        Assert.Equal(FIBONACCI_HASH_U, f);
+        var f2 = (int)(uint)Math.Round(uint.MaxValue / g);
+        Assert.Equal(FIBONACCI_HASH, f2);
+    }
+
+    [Fact]
+    public void GoldenCheck()
+    {
+        Gen.Int
+        .Sample(i =>
+        {
+            var w1 = (int)(FIBONACCI_HASH_U * (uint)i);
+            var w2 = FIBONACCI_HASH * i;
+            return w1 == w2;
+        });
+    }
+
     [Fact]
     public void PowerOf2_012345()
     {

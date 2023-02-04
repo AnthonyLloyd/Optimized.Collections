@@ -97,7 +97,7 @@ public class VecTests
                 var list = new List<int>();
                 for (int i = 0; i < items.Length; i++) list.Add(items[i]);
             }
-        , sigma: 100, threads: 1).Output(writeLine);
+        ).Output(writeLine);
     }
 
     [Fact]

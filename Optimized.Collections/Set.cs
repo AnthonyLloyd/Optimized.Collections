@@ -3,6 +3,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 /// <summary>Represents a strongly typed grow only set of values that can be accessed by index.</summary>
@@ -15,6 +16,7 @@ using System.Runtime.CompilerServices;
 [DebuggerDisplay("Count = {Count}")]
 public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquatable<T>
 {
+    const int FIBONACCI_HASH = -1640531527;
     struct Entry { internal int Bucket; internal int Next; internal T Item; }
     static class Holder { internal static Entry[] Initial = new Entry[1]; }
     int _count;
@@ -76,7 +78,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var entries = _entries;
         for (int i = 0; i < entries.Length;)
         {
-            var bucketIndex = entries[i].Item.GetHashCode() & (newEntries.Length - 1);
+            var bucketIndex = (entries[i].Item.GetHashCode() * FIBONACCI_HASH) & (newEntries.Length - 1);
             newEntries[i].Next = newEntries[bucketIndex].Bucket - 1;
             newEntries[i].Item = entries[i].Item;
             newEntries[bucketIndex].Bucket = ++i;
@@ -103,7 +105,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
     public int Add(T item)
     {
         var entries = _entries;
-        var hashCode = item.GetHashCode();
+        var hashCode = item.GetHashCode() * FIBONACCI_HASH;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
         while (i >= 0)
         {
@@ -123,7 +125,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
     public int IndexOf(T item)
     {
         var entries = _entries;
-        var i = entries[item.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        var i = entries[(item.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while (i >= 0)
         {
             ref var entry = ref entries[i];
@@ -142,7 +144,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
     public bool Contains(T item)
     {
         var entries = _entries;
-        var i = entries[item.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        var i = entries[(item.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while (i >= 0)
         {
             ref var entry = ref entries[i];
@@ -185,11 +187,8 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    /// <summary>Returns the items in this set except the ones in other.</summary>
+    /// <param name="other">items to exclude</param>
     public Set<T> Except(IEnumerable<T> other)
     {
         var count = _count;
@@ -553,7 +552,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var entries = _entries;
         for (int i = 0; i < count;)
         {
-            var bucketIndex = entries[i].Item.GetHashCode() & (newEntries.Length - 1);
+            var bucketIndex = (entries[i].Item.GetHashCode() * FIBONACCI_HASH) & (newEntries.Length - 1);
             newEntries[i].Next = newEntries[bucketIndex].Bucket - 1;
             newEntries[i].Item = entries[i].Item;
             newEntries[bucketIndex].Bucket = ++i;

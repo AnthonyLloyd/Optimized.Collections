@@ -16,6 +16,7 @@ using System.Diagnostics.CodeAnalysis;
 [DebuggerDisplay("Count = {Count}")]
 public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValuePair<K, V>> where K : IEquatable<K>
 {
+    const int FIBONACCI_HASH = -1640531527;
     struct Entry { internal int Bucket; internal int Next; internal K Key; internal V Value; }
     static class Holder { internal readonly static Entry[] Initial = new Entry[1]; }
     int _count;
@@ -86,7 +87,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <param name="value">The value of the element to add. The value can be null for reference types.</param>
     public void Add(K key, V value)
     {
-        var hashCode = key.GetHashCode();
+        var hashCode = key.GetHashCode() * FIBONACCI_HASH;
         var entries = _entries;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
@@ -107,7 +108,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     /// <returns>true if the key/value pair was added to the <see cref="Map{K, V}"/> successfully; otherwise, false.</returns>
     public bool TryAdd(K key, V value)
     {
-        var hashCode = key.GetHashCode();
+        var hashCode = key.GetHashCode() * FIBONACCI_HASH;
         var entries = _entries;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
@@ -130,7 +131,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         var entries = _entries;
         for (int i = 0; i < entries.Length;)
         {
-            var bucketIndex = entries[i].Key.GetHashCode() & (newEntries.Length - 1);
+            var bucketIndex = (entries[i].Key.GetHashCode() * FIBONACCI_HASH) & (newEntries.Length - 1);
             newEntries[i].Next = newEntries[bucketIndex].Bucket - 1;
             newEntries[i].Key = entries[i].Key;
             newEntries[i].Value = entries[i].Value;
@@ -161,7 +162,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         get
         {
             var entries = _entries;
-            var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+            var i = entries[(key.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
             while ((uint)i < (uint)entries.Length)
             {
                 ref var entry = ref entries[i];
@@ -176,7 +177,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         set
         {
             var entries = _entries;
-            var hashCode = key.GetHashCode();
+            var hashCode = key.GetHashCode() * FIBONACCI_HASH;
             var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
             while ((uint)i < (uint)entries.Length)
             {
@@ -199,7 +200,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public bool TryGetValue(K key, [MaybeNullWhen(false)] out V value)
     {
         var entries = _entries;
-        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        var i = entries[(key.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
         {
             ref var entry = ref entries[i];
@@ -221,7 +222,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public V GetOrAdd(K key, Func<K, V> valueFactory)
     {
         var entries = _entries;
-        var hashCode = key.GetHashCode();
+        var hashCode = key.GetHashCode() * FIBONACCI_HASH;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
         {
@@ -244,7 +245,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public V GetOrLockedAdd(K key, Func<K, V> valueFactory)
     {
         var entries = _entries;
-        var hashCode = key.GetHashCode();
+        var hashCode = key.GetHashCode() * FIBONACCI_HASH;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
         {
@@ -255,7 +256,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
             }
             i = entry.Next;
         }
-        lock (this)
+        lock (valueFactory) // TODO: Don't do this
         {
             entries = _entries;
             i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
@@ -280,7 +281,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public ref V GetValueOrNullRef(K key)
     {
         var entries = _entries;
-        var hashCode = key.GetHashCode();
+        var hashCode = key.GetHashCode() * FIBONACCI_HASH;
         var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
         {
@@ -310,7 +311,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public int IndexOf(K key)
     {
         var entries = _entries;
-        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        var i = entries[(key.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
         {
             ref var entry = ref entries[i];
@@ -339,7 +340,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
     public bool ContainsKey(K key)
     {
         var entries = _entries;
-        var i = entries[key.GetHashCode() & (entries.Length - 1)].Bucket - 1;
+        var i = entries[(key.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
         {
             if (entries[i].Key.Equals(key))
@@ -448,7 +449,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         var entries = _entries;
         for (int i = 0; i < count;)
         {
-            var bucketIndex = entries[i].Key.GetHashCode() & (newEntries.Length - 1);
+            var bucketIndex = (entries[i].Key.GetHashCode() * FIBONACCI_HASH) & (newEntries.Length - 1);
             newEntries[i].Next = newEntries[bucketIndex].Bucket - 1;
             newEntries[i].Key = entries[i].Key;
             newEntries[i].Value = entries[i].Value;
