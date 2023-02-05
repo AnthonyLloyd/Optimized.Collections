@@ -10,6 +10,9 @@ public class HelperTests
     const uint FIBONACCI_HASH_U = 2654435769;
     const int FIBONACCI_HASH = -1640531527;
 
+    readonly Action<string> writeLine;
+    public HelperTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
+
     [Fact]
     public void Golden()
     {
@@ -30,6 +33,20 @@ public class HelperTests
             var w2 = FIBONACCI_HASH * i;
             return w1 == w2;
         });
+    }
+
+    [Fact]
+    public void GoldenDistribution()
+    {
+        for (int n = 2; n < 8192; n *= 2)
+        {
+            var set = new Set<int>(n);
+            for (int i = 0; i < n; i++)
+            {
+                set.Add((i * FIBONACCI_HASH) & (n - 1));
+            }
+            Assert.Equal(n, set.Count);
+        }
     }
 
     [Fact]

@@ -3,13 +3,12 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 
 /// <summary>Represents a strongly typed grow only set of values that can be accessed by index.</summary>
 /// <remarks>
 /// - Lock free for reads during modification for reference types (and value types that set atomically).<br/>
-/// - Better performance than <see cref="HashSet{T}"/> in general.<br/>
+/// - 10-20% better performance than <see cref="HashSet{T}"/> in general.<br/>
 /// </remarks>
 /// <typeparam name="T">The type of elements in the set.</typeparam>
 [DebuggerTypeProxy(typeof(IReadOnlyListDebugView<>))]
@@ -22,10 +21,10 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
     int _count;
     Entry[] _entries;
 
-    /// <summary>Initializes a new instance of the <see cref="Set{T}"/> class that is empty</summary>
+    /// <summary>Initializes a new instance of the <see cref="Set{T}"/> class that is empty.</summary>
     public Set() => _entries = Holder.Initial;
 
-    /// <summary>Initializes a new instance of the <see cref="Set{T}"/> class that contains elements copied from the specified collection.</summary>
+    /// <summary>Initializes a new instance of the <see cref="Set{T}"/> class with size the smallest power of two that's greater or equal to the given capacity.</summary>
     /// <param name="capacity">The initial capacity of the <see cref="Set{T}"/>.</param>
     public Set(int capacity)
     {
@@ -64,11 +63,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
     public T this[int index]
     {
         get => _entries[index].Item;
-        set
-        {
-            if ((uint)index >= (uint)_count) Helper.ThrowArgumentOutOfRange();
-            _entries[index].Item = value;
-        }
+        set => _entries[index].Item = value;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -111,6 +106,25 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         {
             if (item.Equals(entries[i].Item))
                 return i;
+            i = entries[i].Next;
+        }
+        return AddItem(item, hashCode);
+    }
+
+    /// <summary>Adds or replaces the specified element to the <see cref="Set{T}"/>.</summary>
+    /// <param name="item">The object to add to the <see cref="Set{T}"/>.</param>
+    public int AddOrUpdate(T item)
+    {
+        var entries = _entries;
+        var hashCode = item.GetHashCode() * FIBONACCI_HASH;
+        var i = entries[hashCode & (entries.Length - 1)].Bucket - 1;
+        while (i >= 0)
+        {
+            if (item.Equals(entries[i].Item))
+            {
+                entries[i].Item = item;
+                return i;
+            }
             i = entries[i].Next;
         }
         return AddItem(item, hashCode);
@@ -221,11 +235,8 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
     public bool Overlaps(IEnumerable<T> other)
     {
         foreach (var element in other)
-        {
             if (IndexOf(element) != -1)
                 return true;
-        }
-
         return false;
     }
 
@@ -248,10 +259,8 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
             }
             return true;
         }
-
         if (count == 0 && other is IReadOnlyCollection<T> otherAsCollection)
             return otherAsCollection.Count == 0;
-
         var bitArray = new BitArray(count);
         var uniqueFoundCount = 0;
         foreach (T item in other)
@@ -276,7 +285,6 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var count = _count;
         if (count == 0 || other == this)
             return true;
-
         if (other is Set<T> otherAsSet)
         {
             if (count > otherAsSet._count)
@@ -287,7 +295,6 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
                 if (otherAsSet.IndexOf(entries[i].Item) == -1)
                     return false;
             }
-
             return true;
         }
 
@@ -301,10 +308,8 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
                 if (!otherAsHashSet.Contains(entries[i].Item))
                     return false;
             }
-
             return true;
         }
-
         var bitArray = new BitArray(count);
         var uniqueFoundCount = 0;
         foreach (T item in other)
@@ -327,7 +332,6 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var count = _count;
         if (other == this)
             return false;
-
         if (other is Set<T> otherAsSet)
         {
             if (count >= otherAsSet._count)
@@ -341,7 +345,6 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
 
             return true;
         }
-
         if (other is IReadOnlyCollection<T> otherAsCollection)
         {
             if (otherAsCollection.Count == 0)
@@ -405,7 +408,6 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
                 if (IndexOf(otherEntries[i].Item) == -1)
                     return false;
             }
-
             return true;
         }
 
@@ -422,7 +424,6 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
                     if (IndexOf(element) == -1)
                         return false;
                 }
-
                 return true;
             }
         }
@@ -461,7 +462,6 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
                 if (IndexOf(otherEntries[i].Item) == -1)
                     return false;
             }
-
             return true;
         }
 
@@ -472,13 +472,11 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
             if (other is HashSet<T> otherAsHashSet && otherAsHashSet.Count > _count)
                 return false;
         }
-
         foreach (T element in other)
         {
             if (IndexOf(element) == -1)
                 return false;
         }
-
         return true;
     }
 
