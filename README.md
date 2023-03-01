@@ -13,11 +13,6 @@ By removing the ability to Remove or Clear collections the following advantages 
 
 These can be particularly important in collection based logic and caches.
 
-
-
-**Rebooting this now NET7.0 is RC**
-
-
 TODO
 - Add struct Keys and Values to Map
 - Expose VecLink\<T>.

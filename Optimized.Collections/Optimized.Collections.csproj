@@ -5,14 +5,14 @@ Optimized.Collections aims to provide drop in replacements for System.Collection
         </Description>
         <Authors>Anthony Lloyd</Authors>
         <Owners>Anthony Lloyd</Owners>
-        <Copyright>Copyright 2022</Copyright>
+        <Copyright>Copyright 2023</Copyright>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageProjectUrl>http://github.com/AnthonyLloyd/Optimized.Collections</PackageProjectUrl>
         <PackageIcon>Optimized.Collections.png</PackageIcon>
         <PackageTags>collections;performance;speed;memory;low-locking</PackageTags>
-        <Version>0.4.0</Version>
+        <Version>0.5.0</Version>
         <PackageReleaseNotes>
-First release - Vec, Set, Map and Memoize.
+Fibonacci hash.
         </PackageReleaseNotes>
         <TargetFrameworks>net8.0</TargetFrameworks>
         <LangVersion>preview</LangVersion>
