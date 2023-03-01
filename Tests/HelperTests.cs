@@ -38,15 +38,19 @@ public class HelperTests
     [Fact]
     public void GoldenDistribution()
     {
-        for (int n = 2; n < 8192; n *= 2)
+        Gen.Int[0, 1000]
+        .Sample(offset =>
         {
-            var set = new Set<int>(n);
-            for (int i = 0; i < n; i++)
+            for (int n = 2; n < 8192; n *= 2)
             {
-                set.Add((i * FIBONACCI_HASH) & (n - 1));
+                var set = new Set<int>(n);
+                for (int i = offset; i < n + offset; i++)
+                {
+                    set.Add((i * FIBONACCI_HASH) & (n - 1));
+                }
+                Assert.Equal(n, set.Count);
             }
-            Assert.Equal(n, set.Count);
-        }
+        });
     }
 
     [Fact]

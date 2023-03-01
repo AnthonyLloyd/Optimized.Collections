@@ -14,7 +14,7 @@ Optimized.Collections aims to provide drop in replacements for System.Collection
         <PackageReleaseNotes>
 First release - Vec, Set, Map and Memoize.
         </PackageReleaseNotes>
-        <TargetFrameworks>net7.0</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
         <LangVersion>preview</LangVersion>
         <WarningLevel>5</WarningLevel>
         <Features>strict</Features>
@@ -26,6 +26,7 @@ First release - Vec, Set, Map and Memoize.
         <AssemblyOriginatorKeyFile>../SigningKey.snk</AssemblyOriginatorKeyFile>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
     <ItemGroup>
         <None Include="../Optimized.Collections.png" Pack="true" PackagePath="" Visible="False" />
