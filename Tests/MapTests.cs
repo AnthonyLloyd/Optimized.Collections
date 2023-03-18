@@ -10,7 +10,7 @@ public class MapTests
     public MapTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
 
     [Fact]
-    public void Set_ModelBased()
+    public void Map_Set_ModelBased()
     {
         Gen.Dictionary(Gen.Int, Gen.Byte)
         .Select(d => (new Map<int, byte>(d), new Dictionary<int, byte>(d)))
@@ -24,7 +24,7 @@ public class MapTests
     }
 
     [Fact]
-    public void Set_Performance()
+    public void Map_Set_Performance()
     {
         Gen.Int.Select(Gen.Byte).Array
         .Faster(
@@ -42,7 +42,7 @@ public class MapTests
     }
 
     [Fact]
-    public void ContainsKey_Performance()
+    public void Map_ContainsKey_Performance()
     {
         Gen.Select(Gen.Int[0, 1000], Gen.Dictionary(Gen.Int[0, 1000], Gen.Int))
         .Select((i, d) => (i, new Map<int, int>(d), new Dictionary<int, int>(d)))
@@ -53,13 +53,13 @@ public class MapTests
     }
 
     [Fact]
-    public void TryGetValue_Add()
+    public void Map_TryGetValue_Add()
     {
         Gen.Int.Array
-        .Sample(a =>
+        .Sample(ints =>
         {
             var map = new Map<int, int>();
-            foreach (var i in a)
+            foreach (var i in ints)
             {
                 if (!map.TryGetValue(i, out _))
                     map.Add(i, i);

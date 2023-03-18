@@ -24,7 +24,7 @@ internal static class Helper
     }
 
     [DoesNotReturn]
-    internal static void ThrowElementWithSaemKeyAlreadyExistsInTheMap()
+    internal static void ThrowElementWithSameKeyAlreadyExistsInTheMap()
     {
         throw new ArgumentException("An element with the same key already exists in the map.");
     }

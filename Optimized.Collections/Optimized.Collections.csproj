@@ -11,6 +11,7 @@ Optimized.Collections aims to provide drop in replacements for System.Collection
         <PackageIcon>Optimized.Collections.png</PackageIcon>
         <PackageTags>collections;performance;speed;memory;low-locking</PackageTags>
         <Version>0.5.0</Version>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <PackageReleaseNotes>
 Fibonacci hash.
         </PackageReleaseNotes>

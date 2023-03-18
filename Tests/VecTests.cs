@@ -10,7 +10,7 @@ public class VecTests
     public VecTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
 
     [Fact]
-    public void Add_ModelBased()
+    public void Vec_Add_ModelBased()
     {
         Gen.Int.Array.Select(a => (new Vec<int>(a), new List<int>(a)))
         .SampleModelBased(
@@ -23,7 +23,7 @@ public class VecTests
     }
 
     [Fact]
-    public void AddNoExcess_ModelBased()
+    public void Vec_AddNoExcess_ModelBased()
     {
         Gen.Int.Array.Select(a => (new Vec<int>(a), new List<int>(a)))
         .SampleModelBased(
@@ -36,7 +36,7 @@ public class VecTests
     }
 
     [Fact]
-    public void Set_ModelBased()
+    public void Vec_Set_ModelBased()
     {
         Gen.Int.Array.Select(a => (new Vec<int>(a), new List<int>(a)))
         .SampleModelBased(
@@ -56,7 +56,7 @@ public class VecTests
     }
 
     [Fact]
-    public void AddRange_ModelBased()
+    public void Vec_AddRange_ModelBased()
     {
         Gen.Int.Array.Select(a => (new Vec<int>(a), new List<int>(a)))
         .SampleModelBased(
@@ -69,21 +69,21 @@ public class VecTests
     }
 
     [Fact]
-    public void IndexOf()
+    public void Vec_IndexOf()
     {
         Gen.Int.Array.Select(Gen.Int, (a, i) => (new Vec<int>(a), new List<int>(a), i))
         .Sample((vec, list, i) => vec.IndexOf(i) == list.IndexOf(i));
     }
 
     [Fact]
-    public void LastIndexOf()
+    public void Vec_LastIndexOf()
     {
         Gen.Int.Array.Select(Gen.Int, (a, i) => (new Vec<int>(a), new List<int>(a), i))
         .Sample((vec, list, i) => vec.LastIndexOf(i) == list.LastIndexOf(i));
     }
 
     [Fact(Skip ="Close")]
-    public void Add_Performance()
+    public void Vec_Add_Performance()
     {
         Gen.Int.Array[5, 50]
         .Faster(
@@ -101,7 +101,7 @@ public class VecTests
     }
 
     [Fact]
-    public void Concurrency()
+    public void Vec_Concurrency()
     {
         Gen.Byte.Array.Select(a => new Vec<byte>(a))
         .SampleConcurrent(

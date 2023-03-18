@@ -16,7 +16,7 @@ using System.Runtime.CompilerServices;
 public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquatable<T>
 {
     const int FIBONACCI_HASH = -1640531527;
-    struct Entry { internal int Bucket; internal int Next; internal T Item; }
+    internal struct Entry { internal int Bucket; internal int Next; internal T Item; }
     static class Holder { internal static Entry[] Initial = new Entry[1]; }
     int _count;
     Entry[] _entries;
@@ -104,7 +104,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var i = entries[(entries.Length - 1) & hashCode].Bucket - 1;
         while (i >= 0)
         {
-            if (item.Equals(entries[i].Item))
+            if (entries[i].Item.Equals(item))
                 return i;
             i = entries[i].Next;
         }
@@ -120,7 +120,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var i = entries[(entries.Length - 1) & hashCode].Bucket - 1;
         while (i >= 0)
         {
-            if (item.Equals(entries[i].Item))
+            if (entries[i].Item.Equals(item))
             {
                 entries[i].Item = item;
                 return i;
@@ -139,7 +139,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var i = entries[(item.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while (i >= 0)
         {
-            if (item.Equals(entries[i].Item))
+            if (entries[i].Item.Equals(item))
                 return i;
             i = entries[i].Next;
         }
@@ -155,7 +155,7 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
         var i = entries[(item.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while (i >= 0)
         {
-            if (item.Equals(entries[i].Item))
+            if (entries[i].Item.Equals(item))
                 return true;
             i = entries[i].Next;
         }
@@ -179,6 +179,9 @@ public sealed class Set<T> : IReadOnlySet<T>, IReadOnlyList<T> where T : IEquata
             return false;
         }
     }
+
+    /// <summary>Creates a <see cref="SetSpan{T}"/></summary>
+    public SetSpan<T> AsSpan() => new(_entries, _count);
 
     /// <summary>Returns an enumerator that iterates through the <see cref="Set{T}"/>.</summary>
     /// <returns>An enumerator for the <see cref="Set{T}"/>.</returns>

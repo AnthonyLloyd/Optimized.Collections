@@ -94,9 +94,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         {
             ref var entry = ref entries[i];
             if (entry.Key.Equals(key))
-            {
-                Helper.ThrowElementWithSaemKeyAlreadyExistsInTheMap();
-            }
+                Helper.ThrowElementWithSameKeyAlreadyExistsInTheMap();
             i = entry.Next;
         }
         AddItem(key, value, hashCode);
@@ -343,7 +341,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         var i = entries[(key.GetHashCode() * FIBONACCI_HASH) & (entries.Length - 1)].Bucket - 1;
         while ((uint)i < (uint)entries.Length)
         {
-            if (key.Equals(entries[i].Key))
+            if (entries[i].Key.Equals(key))
                 return true;
             i = entries[i].Next;
         }
@@ -365,7 +363,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         else
         {
             for (int i = 0; i < count; i++)
-                if (value.Equals(entries[i].Value)) return true;
+                if (entries[i].Equals(value)) return true;
         }
         return false;
     }

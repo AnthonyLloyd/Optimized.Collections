@@ -10,7 +10,7 @@ public class SetTests
     public SetTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
 
     [Fact]
-    public void Add_ModelBased()
+    public void Set_Add_ModelBased()
     {
         Gen.Int.HashSet
         .Select(d => (new Set<int>(d), new HashSet<int>(d)))
@@ -24,7 +24,7 @@ public class SetTests
     }
 
     [Fact]
-    public void Add_Performance()
+    public void Set_Add_Performance()
     {
         Gen.Int.Array
         .Faster(
@@ -42,7 +42,7 @@ public class SetTests
     }
 
     [Fact]
-    public void Contains_Performance()
+    public void Set_Contains_Performance()
     {
         Gen.Select(Gen.Int[0, 1000], Gen.Int[0, 1000].HashSet)
         .Select((i, d) => (i, new Set<int>(d), new HashSet<int>(d)))
@@ -53,7 +53,7 @@ public class SetTests
     }
 
     [Fact]
-    public void SetEquals()
+    public void Set_SetEquals()
     {
         Gen.Select(Gen.Int[1, 10].HashSet[0, 10], Gen.Int[1, 10].Array[0, 10])
         .Sample((hashSet, array) =>
@@ -70,7 +70,7 @@ public class SetTests
     }
 
     [Fact]
-    public void Overlaps()
+    public void Set_Overlaps()
     {
         Gen.Select(Gen.Int[1, 10].HashSet[0, 10], Gen.Int[1, 10].Array[0, 10])
         .Sample((hashSet, array) =>
@@ -87,7 +87,7 @@ public class SetTests
     }
 
     [Fact]
-    public void IsSupersetOf()
+    public void Set_IsSupersetOf()
     {
         Gen.Select(Gen.Int[1, 10].HashSet[0, 10], Gen.Int[1, 10].Array[0, 10])
         .Sample((hashSet, array) =>
@@ -104,7 +104,7 @@ public class SetTests
     }
 
     [Fact]
-    public void IsProperSupersetOf()
+    public void Set_IsProperSupersetOf()
     {
         Gen.Select(Gen.Int[1, 10].HashSet[0, 10], Gen.Int[1, 10].Array[0, 10])
         .Sample((hashSet, array) =>
@@ -121,7 +121,7 @@ public class SetTests
     }
 
     [Fact]
-    public void IsSubsetOf()
+    public void Set_IsSubsetOf()
     {
         Gen.Select(Gen.Int[1, 10].HashSet[0, 10], Gen.Int[1, 10].Array[0, 10])
         .Sample((hashSet, array) =>
@@ -138,7 +138,7 @@ public class SetTests
     }
 
     [Fact]
-    public void IsProperSubsetOf()
+    public void Set_IsProperSubsetOf()
     {
         Gen.Select(Gen.Int[1, 10].HashSet[0, 10], Gen.Int[1, 10].Array[0, 10])
         .Sample((hashSet, array) =>
