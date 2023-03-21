@@ -17,7 +17,7 @@ using System.Diagnostics.CodeAnalysis;
 public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValuePair<K, V>> where K : IEquatable<K>
 {
     const int FIBONACCI_HASH = -1640531527;
-    struct Entry { internal int Bucket; internal int Next; internal K Key; internal V Value; }
+    internal struct Entry { internal int Bucket; internal int Next; internal K Key; internal V Value; }
     static class Holder { internal readonly static Entry[] Initial = new Entry[1]; }
     int _count;
     Entry[] _entries;
@@ -165,9 +165,7 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
             {
                 ref var entry = ref entries[i];
                 if (entry.Key.Equals(key))
-                {
                     return entry.Value;
-                }
                 i = entry.Next;
             }
             throw new KeyNotFoundException();
@@ -212,6 +210,9 @@ public sealed class Map<K, V> : IReadOnlyDictionary<K, V>, IReadOnlyList<KeyValu
         value = default;
         return false;
     }
+
+    /// <summary>Creates a <see cref="MapSpan{K, V}"/></summary>
+    public MapSpan<K, V> AsSpan() => new(_entries, _count);
 
     /// <summary>Adds a key/value pair to the <see cref="Map{K, V}"/> by using the specified function if the key does not already exist. Returns the new value, or the existing value if the key exists.</summary>
     /// <param name="key">The key of the element to add.</param>
