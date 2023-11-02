@@ -17,8 +17,8 @@ public class MapTests
         .SampleModelBased(
             Gen.Select(Gen.Int[0, 100], Gen.Byte).Operation<Map<int, byte>, Dictionary<int, byte>>((map, dictionary, t) =>
             {
-                map[t.V0] = t.V1;
-                dictionary[t.V0] = t.V1;
+                map[t.Item1] = t.Item2;
+                dictionary[t.Item1] = t.Item2;
             })
         );
     }

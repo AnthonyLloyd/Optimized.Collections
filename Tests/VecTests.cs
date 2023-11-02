@@ -107,7 +107,7 @@ public class VecTests
         .SampleConcurrent(
             Gen.Byte.Operation<Vec<byte>>((v, i) => { lock (v) v.Add(i); }),
             Gen.Int.NonNegative.Operation<Vec<byte>>((v, i) => { if (i < v.Count) { _ = v[i]; } }),
-            Gen.Int.NonNegative.Select(Gen.Byte).Operation<Vec<byte>>((v, t) => { if (t.V0 < v.Count) v[t.V0] = t.V1; }),
+            Gen.Int.NonNegative.Select(Gen.Byte).Operation<Vec<byte>>((v, t) => { if (t.Item1 < v.Count) v[t.Item1] = t.Item2; }),
             Gen.Operation<Vec<byte>>(v => v.ToArray()),
             Gen.Operation<Vec<byte>>(v => _ = v.Capacity)
         );
