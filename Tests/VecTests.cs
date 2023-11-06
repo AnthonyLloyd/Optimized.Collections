@@ -4,11 +4,8 @@ using Xunit;
 
 namespace Tests;
 
-public class VecTests
+public class VecTests(Xunit.Abstractions.ITestOutputHelper output)
 {
-    readonly Action<string> writeLine;
-    public VecTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
-
     [Fact]
     public void Vec_Add_ModelBased()
     {
@@ -96,8 +93,8 @@ public class VecTests
             {
                 var list = new List<int>();
                 for (int i = 0; i < items.Length; i++) list.Add(items[i]);
-            }
-        ).Output(writeLine);
+            },
+            writeLine: output.WriteLine);
     }
 
     [Fact]

@@ -4,11 +4,8 @@ using Xunit;
 
 namespace Tests;
 
-public class SetTests
+public class SetTests(Xunit.Abstractions.ITestOutputHelper output)
 {
-    readonly Action<string> writeLine;
-    public SetTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
-
     [Fact]
     public void Set_Add_ModelBased()
     {
@@ -38,7 +35,7 @@ public class SetTests
                 var hashset = new HashSet<int>();
                 for (int i = 0; i < items.Length; i++) hashset.Add(items[i]);
             }
-        , threads: 1).Output(writeLine);
+        , threads: 1, writeLine: output.WriteLine);
     }
 
     [Fact]
@@ -49,7 +46,7 @@ public class SetTests
         .Faster(
             (i, set, _) => set.Contains(i),
             (i, _, hashset) => hashset.Contains(i)
-        , repeat: 100).Output(writeLine);
+        , repeat: 100, writeLine: output.WriteLine);
     }
 
     [Fact]

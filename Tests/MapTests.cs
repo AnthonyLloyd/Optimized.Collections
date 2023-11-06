@@ -4,11 +4,8 @@ using Xunit;
 
 namespace Tests;
 
-public class MapTests
+public class MapTests(Xunit.Abstractions.ITestOutputHelper output)
 {
-    readonly Action<string> writeLine;
-    public MapTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
-
     [Fact]
     public void Map_Set_ModelBased()
     {
@@ -37,8 +34,8 @@ public class MapTests
             {
                 var dictionary = new Dictionary<int, byte>();
                 foreach (var (k, v) in items) dictionary[k] = v;
-            }
-        ).Output(writeLine);
+            },
+            writeLine: output.WriteLine);
     }
 
     [Fact]
@@ -49,7 +46,7 @@ public class MapTests
         .Faster(
             (i, map, _) => map.ContainsKey(i),
             (i, _, dictionary) => dictionary.ContainsKey(i)
-        , repeat: 100).Output(writeLine);
+        , repeat: 100, writeLine: output.WriteLine);
     }
 
     [Fact]

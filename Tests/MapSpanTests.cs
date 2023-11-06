@@ -5,11 +5,8 @@ using CsCheck;
 using Optimized.Collections;
 using Xunit;
 
-public class MapSpanTests
+public class MapSpanTests(Xunit.Abstractions.ITestOutputHelper output)
 {
-    readonly Action<string> writeLine;
-    public MapSpanTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
-
     [Fact]
     public void MapSpan_TryGetValue_Performance()
     {
@@ -32,7 +29,8 @@ public class MapSpanTests
                     if (dic.TryGetValue(i, out _))
                         count++;
                 return count;
-            }
-        ).Output(writeLine);
+            },
+            writeLine: output.WriteLine
+        );
     }
 }

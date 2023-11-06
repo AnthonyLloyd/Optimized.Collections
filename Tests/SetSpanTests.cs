@@ -4,11 +4,8 @@ using CsCheck;
 using Optimized.Collections;
 using Xunit;
 
-public class SetSpanTests
+public class SetSpanTests(Xunit.Abstractions.ITestOutputHelper output)
 {
-    readonly Action<string> writeLine;
-    public SetSpanTests(Xunit.Abstractions.ITestOutputHelper output) => writeLine = output.WriteLine;
-
     [Fact]
     public void SetSpan_Contains_Performance()
     {
@@ -31,7 +28,7 @@ public class SetSpanTests
                     if (hashset.Contains(i))
                         count++;
                 return count;
-            }
-        ).Output(writeLine);
+            },
+            writeLine: output.WriteLine);
     }
 }
