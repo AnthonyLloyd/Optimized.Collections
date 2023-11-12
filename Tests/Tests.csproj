@@ -19,7 +19,7 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="CsCheck" Version="3.0.0-rc4" />
+        <PackageReference Include="CsCheck" Version="3.0.0" />
         <ProjectReference Include="..\Optimized.Collections\Optimized.Collections.csproj" />
   </ItemGroup>
 </Project>
