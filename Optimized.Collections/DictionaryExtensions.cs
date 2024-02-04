@@ -10,37 +10,31 @@ public static class DictionaryExtensions
 {
     static class TaskCompletionSources<K, V>
     {
-        public static ConcurrentDictionary<(IDictionary<K, V>, K), TaskCompletionSource> Current = [];
+        public static ConcurrentDictionary<(IDictionary<K, V>, K), TaskCompletionSource<V>> Current = [];
     }
 
-    /// <summary>Hi</summary>
     public static async Task<V> GetOrAddAtomicAsync<K, V>(this IDictionary<K, V> dictionary, K key, Func<K, Task<V>> factory) where K : notnull
     {
-        while (true)
+        if (dictionary.TryGetValue(key, out var value))
+            return value;
+        var myTcs = new TaskCompletionSource<V>();
+        var tcs = TaskCompletionSources<K, V>.Current.GetOrAdd((dictionary, key), myTcs);
+        if (tcs != myTcs) return await tcs.Task;
+        try
         {
-            if (dictionary.TryGetValue(key, out var value))
-                return value;
-            var myTCS = new TaskCompletionSource();
-            var tcs = TaskCompletionSources<K, V>.Current.GetOrAdd((dictionary, key), myTCS);
-            if (myTCS == tcs)
-            {
-                try
-                {
-                    if (dictionary.TryGetValue(key, out value))
-                        return value;
-                    dictionary[key] = value = await factory(key);
-                    return value;
-                }
-                finally
-                {
-                    tcs.SetResult();
-                    TaskCompletionSources<K, V>.Current.TryRemove((dictionary, key), out _);
-                }
-            }
-            else
-            {
-                await tcs.Task;
-            }
+            if (!dictionary.TryGetValue(key, out value))
+                dictionary[key] = value = await factory(key);
+            myTcs.SetResult(value);
+            return value;
+        }
+        catch (Exception ex)
+        {
+            myTcs.SetException(ex);
+            throw;
+        }
+        finally
+        {
+            TaskCompletionSources<K, V>.Current.TryRemove((dictionary, key), out _);
         }
     }
 

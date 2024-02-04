@@ -9,7 +9,6 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
 {
     class Node(K key, V value)
     {
-        public Node? Prev;
         public Node? Next;
         public readonly K Key = key;
         public readonly V Value = value;
@@ -18,45 +17,39 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
 
     private readonly ConcurrentDictionary<K, Node> _dictionary = [];
     private readonly ConcurrentDictionary<K, TaskCompletionSource<V>> _taskCompletionSources = [];
-    private Node? head;
-    private Node? tail;
-    private Node? hand;
+    private Node? head, tail, hand;
 
     private void Evict()
     {
-        var node = hand ?? tail;
-        while (node is not null && node.Visited)
+        Node? prev = null;
+        var node = hand ?? tail!;
+        while (node.Visited)
         {
             node.Visited = false;
-            node = node.Prev ?? tail;
+            prev = node;
+            node = node.Next ?? tail!;
         }
-        hand = node?.Prev;
-        if (node is not null)
-        {
-            _dictionary.TryRemove(node.Key, out _);
-            RemoveNode(node);
-        }
+        hand = node.Next;
+        _dictionary.TryRemove(node.Key, out _);
+        RemoveNode(node, prev);
+    }
+
+    private void RemoveNode(Node node, Node? prev)
+    {
+        if (node.Next is null)
+            head = prev;
+        if (prev is null)
+            tail = node.Next;
+        else
+            prev.Next = node.Next;
     }
 
     private void AddToHead(Node node)
     {
-        node.Next = head;
         if (head is not null)
-            head.Prev = node;
+            head.Next = node;
         head = node;
         tail ??= node;
-    }
-
-    private void RemoveNode(Node node)
-    {
-        if (node.Prev is not null)
-            node.Prev.Next = node.Next;
-        else
-            head = node.Next;
-        if (node.Next is not null)
-            node.Next.Prev = node.Prev;
-        else
-            tail = node.Prev;
     }
 
     public async Task<V> GetAsync(K key, Func<K, Task<V>> factory)
@@ -66,30 +59,34 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
             node.Visited = true;
             return node.Value;
         }
-        var myTCS = new TaskCompletionSource<V>();
-        var tcs = _taskCompletionSources.GetOrAdd(key, myTCS);
-        if (tcs != myTCS) return await tcs.Task;
+        var myTcs = new TaskCompletionSource<V>();
+        var tcs = _taskCompletionSources.GetOrAdd(key, myTcs);
+        if (tcs != myTcs) return await tcs.Task;
         try
         {
+            V value;
             if (_dictionary.TryGetValue(key, out node))
             {
                 node.Visited = true;
-                return node.Value;
+                value = node.Value;
             }
-            var value = await factory(key);
-            node = new Node(key, value);
-            lock (_dictionary)
+            else
             {
-                if (_dictionary.Count == capacity) Evict();
-                AddToHead(node);
-                _dictionary[key] = node;
+                value = await factory(key);
+                node = new Node(key, value);
+                lock (_dictionary)
+                {
+                    if (_dictionary.Count == capacity) Evict();
+                    AddToHead(node);
+                    _dictionary[key] = node;
+                }
             }
-            tcs.SetResult(value);
+            myTcs.SetResult(value);
             return value;
         }
         catch (Exception ex)
         {
-            tcs.SetException(ex);
+            myTcs.SetException(ex);
             throw;
         }
         finally

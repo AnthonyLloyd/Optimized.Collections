@@ -1,7 +1,6 @@
 ﻿namespace Tests;
 
 using CsCheck;
-using System.Collections.Concurrent;
 using Optimized.Collections;
 using Xunit;
 
