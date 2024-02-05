@@ -64,6 +64,7 @@ public class SieveLruCacheTests
     {
         Check.SampleConcurrent(
             Gen.Const(() => new SieveLruCache<int, int>(4)),
-            Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetAsync(i, j => Task.FromResult(j)).Wait()));
+            Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetAsync(i, j => Task.FromResult(j)).Wait()),
+        time: 10);
     }
 }

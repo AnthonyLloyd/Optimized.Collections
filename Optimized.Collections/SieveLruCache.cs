@@ -9,7 +9,7 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
 {
     class Node(K key, V value)
     {
-        public Node Next = default!;
+        public Node Next = null!;
         public readonly K Key = key;
         public readonly V Value = value;
         public bool Visited;
@@ -17,7 +17,7 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
 
     private readonly ConcurrentDictionary<K, Node> _dictionary = [];
     private readonly ConcurrentDictionary<K, TaskCompletionSource<V>> _taskCompletionSources = [];
-    private Node head = default!;
+    private Node head = null!;
     private Node? hand;
     private volatile TaskCompletionSource<V>? _spareTcs;
 
