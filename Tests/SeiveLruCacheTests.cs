@@ -7,13 +7,29 @@ using Xunit;
 public class SieveLruCacheTests
 {
     [Fact]
-    public async Task SieveExample()
+    public async Task EvictsFirstItem()
+    {
+        var cache = new SieveLruCache<char, int>(3);
+        var i = 0;
+        var usedFactory = (char _) => Task.FromResult(i++);
+        await cache.GetAsync('A', usedFactory);
+        await cache.GetAsync('B', usedFactory);
+        await cache.GetAsync('C', usedFactory);
+        await cache.GetAsync('D', usedFactory);
+        Assert.Equal(new Dictionary<char, int>{
+            {'B', 1},
+            {'C', 2},
+            {'D', 3},
+        }, cache.OrderBy(i => i.Key));
+    }
+
+    [Fact]
+    public async Task BlogExample()
     {
         var cache = new SieveLruCache<char, int>(7);
         var i = 0;
         var usedFactory = (char _) => Task.FromResult(i++);
         var notUsedFactory = Task<int> (char _) => throw new Exception();
-
         // set up initial state
         await cache.GetAsync('A', usedFactory);
         await cache.GetAsync('B', usedFactory);
@@ -25,7 +41,6 @@ public class SieveLruCacheTests
         await cache.GetAsync('G', usedFactory);
         await cache.GetAsync('A', notUsedFactory);
         await cache.GetAsync('G', notUsedFactory);
-
         // requests
         await cache.GetAsync('H', usedFactory);
         await cache.GetAsync('A', notUsedFactory);
@@ -33,27 +48,22 @@ public class SieveLruCacheTests
         await cache.GetAsync('I', usedFactory);
         await cache.GetAsync('B', notUsedFactory);
         await cache.GetAsync('J', usedFactory);
-
-        (char, int)[] expected = [
-            ('A', 0),
-            ('B', 1),
-            ('D', 3),
-            ('G', 6),
-            ('H', 7),
-            ('I', 8),
-            ('J', 9),
-        ];
-
-        Assert.Equal(expected, cache.Select(kv => (kv.Key, kv.Value)).Order(), EqualityComparer<(char, int)>.Default);
+        Assert.Equal(new Dictionary<char, int>{
+            {'A', 0},
+            {'B', 1},
+            {'D', 3},
+            {'G', 6},
+            {'H', 7},
+            {'I', 8},
+            {'J', 9},
+        }, cache.OrderBy(i => i.Key));
     }
 
     [Fact]
-    public void TestConcurrent()
+    public void SampleConcurrent()
     {
         Check.SampleConcurrent(
             Gen.Const(() => new SieveLruCache<int, int>(4)),
-            Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetAsync(i, j => Task.FromResult(j)).Wait()),
-            equal: (d1, d2) => d1.Count == d2.Count
-            );
+            Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetAsync(i, j => Task.FromResult(j)).Wait()));
     }
 }

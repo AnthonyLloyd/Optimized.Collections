@@ -9,7 +9,7 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
 {
     class Node(K key, V value)
     {
-        public Node? Next;
+        public Node Next = default!;
         public readonly K Key = key;
         public readonly V Value = value;
         public bool Visited;
@@ -17,39 +17,42 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
 
     private readonly ConcurrentDictionary<K, Node> _dictionary = [];
     private readonly ConcurrentDictionary<K, TaskCompletionSource<V>> _taskCompletionSources = [];
-    private Node? head, tail, hand;
+    private Node head = default!;
+    private Node? hand;
+    private volatile TaskCompletionSource<V>? _spareTcs;
 
     private void Evict()
     {
-        Node? prev = null;
-        var node = hand ?? tail!;
+        var prev = hand ?? head;
+        var node = prev.Next;
         while (node.Visited)
         {
             node.Visited = false;
             prev = node;
-            node = node.Next ?? tail!;
+            node = node.Next;
         }
-        hand = node.Next;
+        prev.Next = node.Next;
+        hand = prev;
+        if (head == node)
+            head = node.Next;
         _dictionary.TryRemove(node.Key, out _);
-        RemoveNode(node, prev);
-    }
-
-    private void RemoveNode(Node node, Node? prev)
-    {
-        if (node.Next is null)
-            head = prev;
-        if (prev is null)
-            tail = node.Next;
-        else
-            prev.Next = node.Next;
     }
 
     private void AddToHead(Node node)
     {
-        if (head is not null)
+        var count = _dictionary.Count;
+        if (count > 0)
+        {
+            if (count == capacity) Evict();
+            node.Next = head.Next;
             head.Next = node;
-        head = node;
-        tail ??= node;
+            head = node;
+        }
+        else
+        {
+            node.Next = node;
+            head = node;
+        }
     }
 
     public async Task<V> GetAsync(K key, Func<K, Task<V>> factory)
@@ -59,16 +62,20 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
             node.Visited = true;
             return node.Value;
         }
-        var myTcs = new TaskCompletionSource<V>();
+        var myTcs = Interlocked.Exchange(ref _spareTcs, null) ?? new();
         var tcs = _taskCompletionSources.GetOrAdd(key, myTcs);
-        if (tcs != myTcs) return await tcs.Task;
+        if (tcs != myTcs)
+        {
+            _spareTcs = myTcs;
+            return await tcs.Task;
+        }
         try
         {
             V value;
             if (_dictionary.TryGetValue(key, out node))
             {
-                node.Visited = true;
                 value = node.Value;
+                node.Visited = true;
             }
             else
             {
@@ -76,7 +83,6 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
                 node = new Node(key, value);
                 lock (_dictionary)
                 {
-                    if (_dictionary.Count == capacity) Evict();
                     AddToHead(node);
                     _dictionary[key] = node;
                 }
