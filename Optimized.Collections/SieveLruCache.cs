@@ -1,6 +1,7 @@
 ﻿namespace Optimized.Collections;
 
 using System.Collections;
+using System.Collections.Concurrent;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -14,9 +15,8 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         public bool Visited;
     }
 
-    private readonly Dictionary<K, Node> _dictionary = [];
-    private readonly ReaderWriterLockSlim _dictionaryLock = new();
-    private readonly Dictionary<K, TaskCompletionSource<V>> _taskCompletionSources = [];
+    private readonly ConcurrentDictionary<K, Node> _dictionary = [];
+    private readonly ConcurrentDictionary<K, TaskCompletionSource<V>> _taskCompletionSources = [];
     private Node head = default!;
     private Node? hand;
     private volatile TaskCompletionSource<V>? _spareTcs;
@@ -35,7 +35,7 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         hand = prev;
         if (head == node)
             head = node.Next;
-        _dictionary.Remove(node.Key);
+        _dictionary.TryRemove(node.Key, out _);
     }
 
     private void AddToHead(Node node)
@@ -57,20 +57,13 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
 
     public async Task<V> GetAsync(K key, Func<K, Task<V>> factory)
     {
-        _dictionaryLock.EnterReadLock();
         if (_dictionary.TryGetValue(key, out var node))
         {
-            _dictionaryLock.ExitReadLock();
             node.Visited = true;
             return node.Value;
         }
-        _dictionaryLock.ExitReadLock();
         var myTcs = Interlocked.Exchange(ref _spareTcs, null) ?? new();
-        TaskCompletionSource<V>? tcs;
-        lock (_taskCompletionSources)
-        {
-            tcs = _taskCompletionSources.TryAdd(key, myTcs) ? myTcs : _taskCompletionSources[key];
-        }
+        var tcs = _taskCompletionSources.GetOrAdd(key, myTcs);
         if (tcs != myTcs)
         {
             _spareTcs = myTcs;
@@ -79,22 +72,20 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         try
         {
             V value;
-            _dictionaryLock.EnterReadLock();
             if (_dictionary.TryGetValue(key, out node))
             {
-                _dictionaryLock.ExitReadLock();
-                value = node!.Value;
+                value = node.Value;
                 node.Visited = true;
             }
             else
             {
-                _dictionaryLock.ExitReadLock();
                 value = await factory(key);
                 node = new Node(key, value);
-                _dictionaryLock.EnterWriteLock();
-                AddToHead(node);
-                _dictionary[key] = node;
-                _dictionaryLock.ExitWriteLock();
+                lock (_dictionary)
+                {
+                    AddToHead(node);
+                    _dictionary[key] = node;
+                }
             }
             myTcs.SetResult(value);
             return value;
@@ -106,10 +97,7 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         }
         finally
         {
-            lock (_taskCompletionSources)
-            {
-                _taskCompletionSources.Remove(key);
-            }
+            _taskCompletionSources.TryRemove(key, out _);
         }
     }
 
