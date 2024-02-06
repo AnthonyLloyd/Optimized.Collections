@@ -16,7 +16,7 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
     }
 
     private readonly ConcurrentDictionary<K, Node> _dictionary = [];
-    private readonly ConcurrentDictionary<K, TaskCompletionSource<Node>> _taskCompletionSources = [];
+    private readonly Dictionary<K, TaskCompletionSource<Node>> _taskCompletionSources = [];
     private Node head = null!;
     private Node? hand;
     private volatile TaskCompletionSource<Node>? _spareTcs;
@@ -34,25 +34,31 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         prev.Next = node.Next;
         hand = prev;
         if (head == node)
-            head = node.Next;
+            head = prev;
         _dictionary.TryRemove(node.Key, out _);
     }
 
     private void AddToHead(Node node)
     {
         var count = _dictionary.Count;
-        if (count > 0)
+        if (count > 1)
         {
             if (count == capacity) Evict();
             node.Next = head.Next;
             head.Next = node;
-            head = node;
+        }
+        else if (count == 1)
+        {
+            node.Next = head;
+            head.Next = node;
         }
         else
         {
             node.Next = node;
-            head = node;
         }
+        if (head == hand)
+            hand = null;
+        head = node;
     }
 
     public async Task<V> GetAsync(K key, Func<K, Task<V>> factory)
@@ -63,7 +69,9 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
             return node.Value;
         }
         var myTcs = Interlocked.Exchange(ref _spareTcs, null) ?? new();
-        var tcs = _taskCompletionSources.GetOrAdd(key, myTcs);
+        TaskCompletionSource<Node> tcs;
+        lock (_taskCompletionSources)
+            tcs = _taskCompletionSources.TryAdd(key, myTcs) ? myTcs : _taskCompletionSources[key];
         if (tcs != myTcs)
         {
             _spareTcs = myTcs;
@@ -99,7 +107,8 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         }
         finally
         {
-            _taskCompletionSources.TryRemove(key, out _);
+            lock (_taskCompletionSources)
+                _taskCompletionSources.Remove(key);
         }
     }
 
