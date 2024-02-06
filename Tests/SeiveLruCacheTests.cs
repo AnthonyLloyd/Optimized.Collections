@@ -4,6 +4,7 @@ using CsCheck;
 using Optimized.Collections;
 using Xunit;
 
+#pragma warning disable IDE0039 // Use local function
 public class SieveLruCacheTests
 {
     [Fact]
@@ -62,9 +63,10 @@ public class SieveLruCacheTests
     [Fact]
     public void SampleConcurrent()
     {
-        Check.SampleConcurrent(
-            Gen.Const(() => new SieveLruCache<int, int>(4)),
-            Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetAsync(i, j => Task.FromResult(j)).Wait()),
-        time: 10);
+        //for (int i = 0; i < 10; i++)
+            Check.SampleConcurrent(
+                Gen.Const(() => new SieveLruCache<int, int>(4)),
+                Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetAsync(i, _ => Task.FromResult(i)).Wait()),
+            time: 10);
     }
 }

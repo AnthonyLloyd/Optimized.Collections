@@ -12,14 +12,14 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         public Node Next = null!;
         public readonly K Key = key;
         public readonly V Value = value;
-        public bool Visited;
+        public volatile bool Visited;
     }
 
     private readonly ConcurrentDictionary<K, Node> _dictionary = [];
-    private readonly ConcurrentDictionary<K, TaskCompletionSource<V>> _taskCompletionSources = [];
+    private readonly ConcurrentDictionary<K, TaskCompletionSource<Node>> _taskCompletionSources = [];
     private Node head = null!;
     private Node? hand;
-    private volatile TaskCompletionSource<V>? _spareTcs;
+    private volatile TaskCompletionSource<Node>? _spareTcs;
 
     private void Evict()
     {
@@ -67,15 +67,17 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         if (tcs != myTcs)
         {
             _spareTcs = myTcs;
-            return await tcs.Task;
+            node = await tcs.Task;
+            node.Visited = true;
+            return node.Value;
         }
         try
         {
             V value;
             if (_dictionary.TryGetValue(key, out node))
             {
-                value = node.Value;
                 node.Visited = true;
+                value = node.Value;
             }
             else
             {
@@ -87,7 +89,7 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
                     _dictionary[key] = node;
                 }
             }
-            myTcs.SetResult(value);
+            myTcs.SetResult(node);
             return value;
         }
         catch (Exception ex)
@@ -101,7 +103,26 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         }
     }
 
-    public IEnumerator<KeyValuePair<K, V>> GetEnumerator() => _dictionary.Select(kv => KeyValuePair.Create(kv.Key, kv.Value.Value)).GetEnumerator();
+    public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+    {
+        if (_dictionary.Count > 1)
+        {
+            var loopKeys = new HashSet<K>();
+            var node = head.Next;
+            while (true)
+            {
+                if (!_dictionary.ContainsKey(node.Key))
+                    throw new Exception($"Dictionary does not contain {node.Key}");
+                loopKeys.Add(node.Key);
+                if (node == head) break;
+                node = node.Next;
+            }
+            if (loopKeys.Count != _dictionary.Count)
+                throw new Exception($"Counts differ {loopKeys.Count} {_dictionary.Count}");
+        }
+        return _dictionary.Select(kv => KeyValuePair.Create(kv.Key, kv.Value.Value)).GetEnumerator();
+    }
+
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public int Count => _dictionary.Count;
