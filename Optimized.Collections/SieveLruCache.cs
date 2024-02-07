@@ -52,10 +52,6 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
             node.Next = head;
             head.Next = node;
         }
-        else
-        {
-            node.Next = node;
-        }
         if (head == hand)
             hand = node;
         head = node;
