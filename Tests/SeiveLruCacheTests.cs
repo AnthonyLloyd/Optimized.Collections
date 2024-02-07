@@ -6,6 +6,7 @@ using Optimized.Collections;
 using Xunit;
 
 #pragma warning disable IDE0039 // Use local function
+
 public class SieveLruCacheTests
 {
     [Fact]

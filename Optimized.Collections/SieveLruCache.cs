@@ -18,12 +18,12 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
     private readonly ConcurrentDictionary<K, Node> _dictionary = [];
     private readonly Dictionary<K, TaskCompletionSource<Node>> _taskCompletionSources = [];
     private Node head = null!;
-    private Node? hand;
+    private Node hand = null!;
     private volatile TaskCompletionSource<Node>? _spareTcs;
 
     private void Evict()
     {
-        var prev = hand ?? head;
+        var prev = hand;
         var node = prev.Next;
         while (node.Visited)
         {
@@ -57,7 +57,7 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
             node.Next = node;
         }
         if (head == hand)
-            hand = null;
+            hand = node;
         head = node;
     }
 
