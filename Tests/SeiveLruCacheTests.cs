@@ -9,7 +9,7 @@ using Xunit;
 public class SieveLruCacheTests
 {
     [Fact]
-    public async Task EvictsTail()
+    public async Task ExampleEvictsTail()
     {
         var cache = new SieveLruCache<char, int>(3);
         var i = 0;
@@ -26,7 +26,7 @@ public class SieveLruCacheTests
     }
 
     [Fact]
-    public async Task EvictsHead()
+    public async Task ExampleEvictsHead()
     {
         var cache = new SieveLruCache<int, int>(4);
         var i = 0;
@@ -51,7 +51,7 @@ public class SieveLruCacheTests
     }
 
     [Fact]
-    public async Task BlogExample()
+    public async Task ExampleBlog()
     {
         var cache = new SieveLruCache<char, int>(7);
         var i = 0;
@@ -95,8 +95,8 @@ public class SieveLruCacheTests
             {
                 a.GetAsync(i, i => Task.FromResult(i)).Wait();
                 m.GetAsync(i, i => Task.FromResult(i)).Wait();
-            }),
-        time: 10);
+            })
+        );
     }
 
     [Fact]
@@ -104,8 +104,8 @@ public class SieveLruCacheTests
     {
         Check.SampleConcurrent(
             Gen.Const(() => new SieveLruCache<int, int>(4)),
-            Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetAsync(i, i => Task.FromResult(i)).Wait()),
-        time: 10);
+            Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetAsync(i, i => Task.FromResult(i)).Wait())
+        );
     }
 }
 
