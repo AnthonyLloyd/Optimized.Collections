@@ -1,25 +1,22 @@
 ﻿namespace Optimized.Collections;
 
-using System.Collections;
-using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>> where K : notnull
+public class SieveLruCache<K, V>(int capacity) : ICache<K, V> where K : notnull
 {
     class Node(K key, V value)
     {
         public Node Next = null!;
         public readonly K Key = key;
-        public readonly V Value = value;
-        public volatile bool Visited;
+        public V Value = value;
+        public bool Visited;
     }
 
-    private readonly ConcurrentDictionary<K, Node> _dictionary = [];
-    private readonly Dictionary<K, TaskCompletionSource<Node>> _taskCompletionSources = [];
-    private Node head = null!;
-    private Node hand = null!;
-    private volatile TaskCompletionSource<Node>? _spareTcs;
+    private readonly Dictionary<K, Node> _dictionary = [];
+    private readonly ReaderWriterLockSlim _lock = new();
+    private Node head = null!, hand = null!;
 
     private void Evict()
     {
@@ -35,7 +32,7 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         hand = prev;
         if (head == node)
             head = prev;
-        _dictionary.TryRemove(node.Key, out _);
+        _dictionary.Remove(node.Key);
     }
 
     private void AddToHead(Node node)
@@ -57,78 +54,67 @@ public class SieveLruCache<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>>
         head = node;
     }
 
-    public async Task<V> GetAsync(K key, Func<K, Task<V>> factory)
+    public bool TryGetValue(K key, [MaybeNullWhen(false)] out V value)
     {
-        if (_dictionary.TryGetValue(key, out var node))
-        {
-            node.Visited = true;
-            return node.Value;
-        }
-        var myTcs = Interlocked.Exchange(ref _spareTcs, null) ?? new();
-        TaskCompletionSource<Node> tcs;
-        lock (_taskCompletionSources)
-            tcs = _taskCompletionSources.TryAdd(key, myTcs) ? myTcs : _taskCompletionSources[key];
-        if (tcs != myTcs)
-        {
-            _spareTcs = myTcs;
-            node = await tcs.Task;
-            node.Visited = true;
-            return node.Value;
-        }
+        _lock.EnterReadLock();
         try
         {
-            V value;
-            if (_dictionary.TryGetValue(key, out node))
+            if (_dictionary.TryGetValue(key, out var node))
             {
                 node.Visited = true;
                 value = node.Value;
+                return true;
             }
-            else
-            {
-                value = await factory(key);
-                node = new Node(key, value);
-                lock (_dictionary)
-                {
-                    AddToHead(node);
-                    _dictionary[key] = node;
-                }
-            }
-            myTcs.SetResult(node);
-            return value;
-        }
-        catch (Exception ex)
-        {
-            myTcs.SetException(ex);
-            throw;
+            value = default;
+            return false;
         }
         finally
         {
-            lock (_taskCompletionSources)
-                _taskCompletionSources.Remove(key);
+            _lock.ExitReadLock();
         }
     }
 
-    public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+    public void Set(K key, V value)
     {
-        if (_dictionary.Count > 1)
+        _lock.EnterWriteLock();
+        try
         {
-            var loopKeys = new HashSet<K>();
-            var node = head.Next;
-            while (true)
+            if (_dictionary.TryGetValue(key, out var node))
             {
-                if (!_dictionary.ContainsKey(node.Key))
-                    throw new Exception($"Dictionary does not contain {node.Key}");
-                loopKeys.Add(node.Key);
-                if (node == head) break;
-                node = node.Next;
+                node.Value = value;
             }
-            if (loopKeys.Count != _dictionary.Count)
-                throw new Exception($"Counts differ {loopKeys.Count} {_dictionary.Count}");
+            else
+            {
+                node = new Node(key, value);
+                AddToHead(node);
+                _dictionary.Add(key, node);
+            }
         }
-        return _dictionary.Select(kv => KeyValuePair.Create(kv.Key, kv.Value.Value)).GetEnumerator();
+        finally
+        {
+            _lock.ExitWriteLock();
+        }
     }
 
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public int Count
+    {
+        get
+        {
+            _lock.EnterReadLock();
+            var count = _dictionary.Count;
+            _lock.ExitReadLock();
+            return count;
+        }
+    }
 
-    public int Count => _dictionary.Count;
+    public IEnumerable<K> Keys
+    {
+        get
+        {
+            _lock.EnterReadLock();
+            var keys = _dictionary.Keys.ToArray();
+            _lock.ExitReadLock();
+            return keys;
+        }
+    }
 }

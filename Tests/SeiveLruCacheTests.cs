@@ -1,6 +1,6 @@
 ﻿namespace Tests;
 
-using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using CsCheck;
 using Optimized.Collections;
 using Xunit;
@@ -10,72 +10,72 @@ using Xunit;
 public class SieveLruCacheTests
 {
     [Fact]
-    public async Task ExampleEvictsTail()
+    public void ExampleEvictsTail()
     {
         var cache = new SieveLruCache<char, int>(3);
         var i = 0;
-        var usedFactory = (char _) => Task.FromResult(i++);
-        await cache.GetAsync('A', usedFactory);
-        await cache.GetAsync('B', usedFactory);
-        await cache.GetAsync('C', usedFactory);
-        await cache.GetAsync('D', usedFactory);
+        var usedFactory = (char _) => i++;
+        cache.GetOrAdd('A', usedFactory);
+        cache.GetOrAdd('B', usedFactory);
+        cache.GetOrAdd('C', usedFactory);
+        cache.GetOrAdd('D', usedFactory);
         Assert.Equal(new Dictionary<char, int>{
             {'B', 1},
             {'C', 2},
             {'D', 3},
-        }, cache.OrderBy(i => i.Key));
+        }, cache.Keys.ToDictionary(k => k, k => cache.TryGetValue(k, out var v) ? v : 999));
     }
 
     [Fact]
-    public async Task ExampleEvictsHead()
+    public void ExampleEvictsHead()
     {
         var cache = new SieveLruCache<int, int>(4);
         var i = 0;
-        var usedFactory = (int _) => Task.FromResult(i++);
-        var notUsedFactory = Task<int> (int _) => throw new Exception();
-        await cache.GetAsync(1, usedFactory);
-        await cache.GetAsync(4, usedFactory);
-        await cache.GetAsync(1, notUsedFactory);
-        await cache.GetAsync(3, usedFactory);
-        await cache.GetAsync(2, usedFactory);
-        await cache.GetAsync(3, notUsedFactory);
-        await cache.GetAsync(4, notUsedFactory);
-        await cache.GetAsync(5, usedFactory);
-        await cache.GetAsync(1, notUsedFactory);
-        await cache.GetAsync(2, usedFactory);
+        var usedFactory = (int _) => i++;
+        var notUsedFactory = int (int _) => throw new Exception();
+        cache.GetOrAdd(1, usedFactory);
+        cache.GetOrAdd(4, usedFactory);
+        cache.GetOrAdd(1, notUsedFactory);
+        cache.GetOrAdd(3, usedFactory);
+        cache.GetOrAdd(2, usedFactory);
+        cache.GetOrAdd(3, notUsedFactory);
+        cache.GetOrAdd(4, notUsedFactory);
+        cache.GetOrAdd(5, usedFactory);
+        cache.GetOrAdd(1, notUsedFactory);
+        cache.GetOrAdd(2, usedFactory);
         Assert.Equal(new Dictionary<int, int>{
             {1, 0},
             {2, 5},
             {3, 2},
             {5, 4},
-        }, cache.OrderBy(i => i.Key));
+        }, cache.Keys.ToDictionary(k => k, k => cache.TryGetValue(k, out var v) ? v : 999));
     }
 
     [Fact]
-    public async Task ExampleBlog()
+    public void ExampleBlog()
     {
         var cache = new SieveLruCache<char, int>(7);
         var i = 0;
-        var usedFactory = (char _) => Task.FromResult(i++);
-        var notUsedFactory = Task<int> (char _) => throw new Exception();
+        var usedFactory = (char _) => i++;
+        var notUsedFactory = int (char _) => throw new Exception();
         // set up initial state
-        await cache.GetAsync('A', usedFactory);
-        await cache.GetAsync('B', usedFactory);
-        await cache.GetAsync('C', usedFactory);
-        await cache.GetAsync('D', usedFactory);
-        await cache.GetAsync('B', notUsedFactory);
-        await cache.GetAsync('E', usedFactory);
-        await cache.GetAsync('F', usedFactory);
-        await cache.GetAsync('G', usedFactory);
-        await cache.GetAsync('A', notUsedFactory);
-        await cache.GetAsync('G', notUsedFactory);
+        cache.GetOrAdd('A', usedFactory);
+        cache.GetOrAdd('B', usedFactory);
+        cache.GetOrAdd('C', usedFactory);
+        cache.GetOrAdd('D', usedFactory);
+        cache.GetOrAdd('B', notUsedFactory);
+        cache.GetOrAdd('E', usedFactory);
+        cache.GetOrAdd('F', usedFactory);
+        cache.GetOrAdd('G', usedFactory);
+        cache.GetOrAdd('A', notUsedFactory);
+        cache.GetOrAdd('G', notUsedFactory);
         // requests
-        await cache.GetAsync('H', usedFactory);
-        await cache.GetAsync('A', notUsedFactory);
-        await cache.GetAsync('D', notUsedFactory);
-        await cache.GetAsync('I', usedFactory);
-        await cache.GetAsync('B', notUsedFactory);
-        await cache.GetAsync('J', usedFactory);
+        cache.GetOrAdd('H', usedFactory);
+        cache.GetOrAdd('A', notUsedFactory);
+        cache.GetOrAdd('D', notUsedFactory);
+        cache.GetOrAdd('I', usedFactory);
+        cache.GetOrAdd('B', notUsedFactory);
+        cache.GetOrAdd('J', usedFactory);
         Assert.Equal(new Dictionary<char, int>{
             {'A', 0},
             {'B', 1},
@@ -84,7 +84,7 @@ public class SieveLruCacheTests
             {'H', 7},
             {'I', 8},
             {'J', 9},
-        }, cache.OrderBy(i => i.Key));
+        }, cache.Keys.ToDictionary(k => k, k => cache.TryGetValue(k, out var v) ? v : 999));
     }
 
     [Fact]
@@ -94,9 +94,12 @@ public class SieveLruCacheTests
             Gen.Const(() => (new SieveLruCache<int, int>(4), new SieveModel<int, int>(4))),
             Gen.Int[1, 5].Operation<SieveLruCache<int, int>, SieveModel<int, int>>((a, m, i) =>
             {
-                a.GetAsync(i, i => Task.FromResult(i)).Wait();
-                m.GetAsync(i, i => Task.FromResult(i)).Wait();
-            })
+                a.GetOrAdd(i, i => i);
+                m.GetOrAdd(i, i => i);
+            }),
+            equal: (a, m) => Check.Equal(a.Keys, m.Keys),
+            printActual: a => Check.Print(a.Keys),
+            printModel: m => Check.Print(m.Keys)
         );
     }
 
@@ -105,18 +108,33 @@ public class SieveLruCacheTests
     {
         Check.SampleConcurrent(
             Gen.Const(() => new SieveLruCache<int, int>(4)),
-            Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetAsync(i, i => Task.FromResult(i)).Wait())
+            Gen.Int[1, 5].Operation<SieveLruCache<int, int>>((d, i) => d.GetOrAdd(i, i => i)),
+            equal: (a, b) => Check.Equal(a.Keys, b.Keys),
+            print: a => Check.Print(a.Keys)
         );
     }
 }
 
-public class SieveModel<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>> where K : notnull
+internal static class SieveLruCacheExtensions
+{
+    public static V GetOrAdd<K, V>(this ICache<K, V> cache, K key, Func<K, V> factory) where K : notnull
+    {
+        if (!cache.TryGetValue(key, out var value))
+        {
+            value = factory(key);
+            cache.Set(key, value);
+        }
+        return value;
+    }
+}
+
+public class SieveModel<K, V>(int capacity) : ICache<K, V> where K : notnull
 {
     class Node(K key, V value)
     {
         public Node? Next, Prev;
         public readonly K Key = key;
-        public readonly V Value = value;
+        public V Value = value;
         public volatile bool Visited;
     }
 
@@ -157,21 +175,33 @@ public class SieveModel<K, V>(int capacity) : IEnumerable<KeyValuePair<K, V>> wh
         tail ??= node;
     }
 
-    public async Task<V> GetAsync(K key, Func<K, Task<V>> factory)
+    public void Set(K key, V value)
+    {
+        if (_dictionary.TryGetValue(key, out var node))
+        {
+            node.Value = value;
+        }
+        else
+        {
+            node = new Node(key, value);
+            if (_dictionary.Count == capacity) Evict();
+            AddToHead(node);
+            _dictionary.Add(key, node);
+        }
+    }
+
+    public bool TryGetValue(K key, [MaybeNullWhen(false)] out V value)
     {
         if (_dictionary.TryGetValue(key, out var node))
         {
             node.Visited = true;
-            return node.Value;
+            value = node.Value;
+            return true;
         }
-        var value = await factory(key);
-        if (_dictionary.Count == capacity) Evict();
-        node = new Node(key, value);
-        AddToHead(node);
-        _dictionary.Add(key, node);
-        return value;
+        value = default;
+        return false;
     }
 
-    public IEnumerator<KeyValuePair<K, V>> GetEnumerator() => _dictionary.Select(kv => KeyValuePair.Create(kv.Key, kv.Value.Value)).GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public int Count => _dictionary.Count;
+    public IEnumerable<K> Keys => _dictionary.Keys;
 }
