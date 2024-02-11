@@ -32,4 +32,12 @@ public class CacheTests
         var exception = await Assert.ThrowsAsync<Exception>(() => cache.GetOrAddAtomicAsync(1, _ => Task.Run(int () => throw new Exception("no"))));
         Assert.Equal("no", exception.Message);
     }
+
+    [Fact]
+    public async Task GetOrAddAtomicAsync_ExceptionSync()
+    {
+        var cache = new ConcurrentDictionaryCache<int, int>();
+        var exception = await Assert.ThrowsAsync<Exception>(() => cache.GetOrAddAtomicAsync(1, _ => throw new Exception("no")));
+        Assert.Equal("no", exception.Message);
+    }
 }
