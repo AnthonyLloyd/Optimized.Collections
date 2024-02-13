@@ -1,6 +1,7 @@
 ﻿namespace Optimized.Collections;
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -38,13 +39,13 @@ public class SieveLruCache<K, V>(int capacity) : ICache<K, V> where K : notnull
     private void AddToHead(Node node)
     {
         var count = _dictionary.Count;
-        if (count > 1)
+        if (count > 2)
         {
-            if (count == capacity) Evict();
+            if (count > capacity) Evict();
             node.Next = head.Next;
             head.Next = node;
         }
-        else if (count == 1)
+        else if (count == 2)
         {
             node.Next = head;
             head.Next = node;
@@ -79,15 +80,15 @@ public class SieveLruCache<K, V>(int capacity) : ICache<K, V> where K : notnull
         _lock.EnterWriteLock();
         try
         {
-            if (_dictionary.TryGetValue(key, out var node))
-            {
-                node.Value = value;
-            }
-            else
+            ref var node = ref CollectionsMarshal.GetValueRefOrAddDefault(_dictionary, key, out _);
+            if (node is null)
             {
                 node = new Node(key, value);
                 AddToHead(node);
-                _dictionary.Add(key, node);
+            }
+            else
+            {
+                node.Value = value;
             }
         }
         finally

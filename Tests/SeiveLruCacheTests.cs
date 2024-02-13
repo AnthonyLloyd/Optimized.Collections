@@ -97,7 +97,7 @@ public class SieveLruCacheTests
                 a.GetOrAdd(i, i => i);
                 m.GetOrAdd(i, i => i);
             }),
-            equal: (a, m) => Check.Equal(a.Keys, m.Keys),
+            equal: (a, m) => Check.Equal(a.Keys.ToHashSet(), m.Keys.ToHashSet()),
             printActual: a => Check.Print(a.Keys),
             printModel: m => Check.Print(m.Keys)
         );

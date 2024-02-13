@@ -20,7 +20,7 @@ public static class CacheExtensions
         public static ConcurrentDictionary<(ICache<K, V>, K), TaskCompletionSource<V>> Current = [];
     }
 
-    public static async Task<V> GetOrAddAtomicAsync<K, V>(this ICache<K, V> cache, K key, Func<K, Task<V>> factory) where K : notnull
+    public static async ValueTask<V> GetOrAddAtomicAsync<K, V>(this ICache<K, V> cache, K key, Func<K, Task<V>> factory) where K : notnull
     {
         if (cache.TryGetValue(key, out var value))
             return value;

@@ -19,7 +19,7 @@ public class CacheTests
     {
         Check.SampleConcurrent(
             Gen.Const(() => new ConcurrentDictionaryCache<int, int>()),
-            Gen.Int[1, 5].Operation<ConcurrentDictionaryCache<int, int>>((d, i) => d.GetOrAddAtomicAsync(i, i => Task.FromResult(i)).Wait()),
+            Gen.Int[1, 5].Operation<ConcurrentDictionaryCache<int, int>>((d, i) => d.GetOrAddAtomicAsync(i, i => Task.FromResult(i)).AsTask().Wait()),
             equal: (a, b) => Check.Equal(a.Keys, b.Keys),
             print: a => Check.Print(a.Keys)
         );
@@ -29,7 +29,7 @@ public class CacheTests
     public async Task GetOrAddAtomicAsync_Exception()
     {
         var cache = new ConcurrentDictionaryCache<int, int>();
-        var exception = await Assert.ThrowsAsync<Exception>(() => cache.GetOrAddAtomicAsync(1, _ => Task.Run(int () => throw new Exception("no"))));
+        var exception = await Assert.ThrowsAsync<CsCheckException>(() => cache.GetOrAddAtomicAsync(1, _ => Task.Run(int () => throw new CsCheckException("no"))).AsTask());
         Assert.Equal("no", exception.Message);
     }
 
@@ -37,7 +37,7 @@ public class CacheTests
     public async Task GetOrAddAtomicAsync_ExceptionSync()
     {
         var cache = new ConcurrentDictionaryCache<int, int>();
-        var exception = await Assert.ThrowsAsync<Exception>(() => cache.GetOrAddAtomicAsync(1, _ => throw new Exception("no")));
+        var exception = await Assert.ThrowsAsync<CsCheckException>(() => cache.GetOrAddAtomicAsync(1, _ => throw new CsCheckException("no")).AsTask());
         Assert.Equal("no", exception.Message);
     }
 }
